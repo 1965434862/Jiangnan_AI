@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雷石智能K歌助手</title>
+    <style>
+        /* 全局样式 - 雷石高级质感色系 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+        }
+        body {
+            /* 调整为比聊天框稍深的纯色渐变 移除纹理 */
+            background: linear-gradient(135deg, #12051e 0%, #150725 50%, #12051e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        /* 主容器 - 玻璃拟态+金属边框 */
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: rgba(26, 11, 46, 0.85);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(123, 44, 191, 0.4), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+        /* 顶部渐变光效 */
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #5a189a, #9d4edd, #5a189a);
+            border-radius: 16px 16px 0 0;
+        }
+        /* 标题栏 - 金属质感文字 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(123, 44, 191, 0.2);
+        }
+        .header h1 {
+            color: #f8f9fa;
+            font-size: 38px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
+            background: linear-gradient(120deg, #e0aaff, #f8f9fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p {
+            color: #bb86fc;
+            margin-top: 12px;
+            font-size: 16px;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+        /* 聊天记录区域 - 磨砂玻璃质感（比背景稍浅） */
+        .chat-box {
+            height: 520px;
+            overflow-y: auto;
+            background: rgba(18, 8, 30, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        /* 自定义滚动条 - 紫金色系 */
+        .chat-box::-webkit-scrollbar {
+            width: 10px;
+        }
+        .chat-box::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #5a189a, #9d4edd);
+            border-radius: 8px;
+            border: 2px solid rgba(18, 8, 30, 0.5);
+        }
+        .chat-box::-webkit-scrollbar-track {
+            background: rgba(18, 8, 30, 0.5);
+            border-radius: 8px;
+        }
+        /* 消息气泡样式 */
+        .message {
+            margin-bottom: 22px;
+            max-width: 72%;
+            clear: both;
+        }
+        .user-message {
+            float: right;
+        }
+        .ai-message {
+            float: left;
+        }
+        .message-content {
+            padding: 18px 24px;
+            border-radius: 14px;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        /* 用户消息 - 紫金渐变 */
+        .user-message .message-content {
+            background: linear-gradient(135deg, #5a189a, #7b2cbf);
+            color: #ffffff;
+            border: 1px solid rgba(157, 78, 221, 0.4);
+            border-bottom-right-radius: 6px;
+        }
+        /* AI消息 - 深紫磨砂 */
+        .ai-message .message-content {
+            background: rgba(36, 18, 61, 0.8);
+            color: #e0aaff;
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-bottom-left-radius: 6px;
+        }
+        /* 消息时间戳 */
+        .message-time {
+            font-size: 12px;
+            color: #9d4edd;
+            margin-top: 8px;
+            text-align: right;
+            opacity: 0.7;
+            letter-spacing: 0.5px;
+        }
+        /* 输入区域 - 一体化设计 */
+        .input-area {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        #user-input {
+            flex: 1;
+            height: 70px;
+            padding: 20px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(123, 44, 191, 0.4);
+            background: rgba(18, 8, 30, 0.8);
+            color: #f8f9fa;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        #user-input:focus {
+            border-color: #9d4edd;
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3),
+                        inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #user-input::placeholder {
+            color: #7b2cbf;
+            opacity: 0.7;
+        }
+        /* 按钮通用样式 - 金属质感 */
+        .btn {
+            height: 70px;
+            width: 70px;
+            border-radius: 12px;
+            border: 1px solid rgba(157, 78, 221, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        }
+        /* 发送按钮 - 紫金渐变 */
+        .send-btn {
+            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+            color: #ffffff;
+        }
+        .send-btn:hover {
+            background: linear-gradient(135deg, #5a189a, #7b2cbf);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(123, 44, 191, 0.4);
+        }
+        /* 语音按钮 - 磨砂金属 */
+        .voice-btn {
+            background: rgba(36, 18, 61, 0.8);
+            color: #e0aaff;
+            position: relative;
+        }
+        .voice-btn::after {
+            content: "长按K歌";
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #bb86fc;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+        .voice-btn:hover {
+            background: rgba(51, 26, 85, 0.8);
+            border-color: #9d4edd;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(123, 44, 191, 0.3);
+        }
+        /* 加载动画 - 紫金呼吸效果 */
+        .loading {
+            color: #bb86fc;
+            text-align: center;
+            padding: 12px;
+            display: none;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .loading span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7b2cbf, #e0aaff);
+            margin: 0 5px;
+            animation: loading 1.2s infinite alternate ease-in-out;
+        }
+        .loading span:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .loading span:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        @keyframes loading {
+            from { transform: scale(0.8); opacity: 0.6; }
+            to { transform: scale(1.5); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题栏 -->
+        <div class="header">
+            <h1>江南</h1>
+            <p>🎵 我是江南，但我不会唱江南。</p>
+        </div>
+        
+        <!-- 聊天记录区域 -->
+        <div class="chat-box" id="chat-box">
+            <!-- 欢迎语 -->
+            <div class="message ai-message">
+                <div class="message-content">
+                    你好呀～🎶 我可以为您推荐歌曲、调节音效、解答歌曲相关问题，有任何需求都可以告诉我哦！
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载动画 -->
+        <div class="loading" id="loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span>智能助手正在响应...</span>
+        </div>
+        
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <textarea id="user-input" placeholder="输入您想聊的内容，或长按麦克风K歌..."></textarea>
+            <button class="btn voice-btn" ontouchstart="startVoice()" ontouchend="endVoice()" onmousedown="startVoice()" onmouseup="endVoice()" onmouseleave="endVoice()">🎤</button>
+            <button class="btn send-btn" onclick="sendMessage()">✈️</button>
+        </div>
+    </div>
+
+    <script>
+        // 后端接口地址
+        const API_URL = "http://127.0.0.1:8000/api/chat";
+        
+        // 语音输入模拟（仅UI交互）
+        let isVoicePress = false;
+        function startVoice() {
+            isVoicePress = true;
+            const voiceBtn = document.querySelector('.voice-btn');
+            voiceBtn.style.background = 'rgba(51, 26, 85, 0.9)';
+            voiceBtn.style.borderColor = '#e0aaff';
+            voiceBtn.style.transform = 'translateY(-2px)';
+        }
+        function endVoice() {
+            if (isVoicePress) {
+                isVoicePress = false;
+                const voiceBtn = document.querySelector('.voice-btn');
+                voiceBtn.style.background = 'rgba(36, 18, 61, 0.8)';
+                voiceBtn.style.borderColor = 'rgba(157, 78, 221, 0.4)';
+                voiceBtn.style.transform = 'translateY(0)';
+                alert("雷石专业K歌语音功能正在加载中，敬请期待～");
+            }
+        }
+
+        // 发送消息核心逻辑
+        async function sendMessage() {
+            const inputEl = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const loadingEl = document.getElementById('loading');
+            
+            // 获取并校验输入内容
+            const userInput = inputEl.value.trim();
+            if (!userInput) {
+                alert("请输入内容后再发送～");
+                return;
+            }
+            
+            // 清空输入框
+            inputEl.value = "";
+            
+            // 添加用户消息到聊天框
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
+            chatBox.innerHTML += `
+                <div class="message user-message">
+                    <div class="message-content">${userInput}</div>
+                    <div class="message-time">${timeStr}</div>
+                </div>
+            `;
+            
+            // 滚动到底部
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 显示加载动画
+            loadingEl.style.display = "block";
+            
+            try {
+                // 调用后端接口
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ user_input: userInput })
+                });
+                
+                const result = await response.json();
+                if (result.code === 200) {
+                    // 添加AI回复到聊天框
+                    chatBox.innerHTML += `
+                        <div class="message ai-message">
+                            <div class="message-content">${result.data.reply}</div>
+                            <div class="message-time">${timeStr}</div>
+                        </div>
+                    `;
+                } else {
+                    chatBox.innerHTML += `
+                        <div class="message ai-message">
+                            <div class="message-content">${result.msg || "系统暂未响应，请稍后再试～"}</div>
+                            <div class="message-time">${timeStr}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                chatBox.innerHTML += `
+                    <div class="message ai-message">
+                        <div class="message-content">网络连接异常，请检查后重试～</div>
+                        <div class="message-time">${timeStr}</div>
+                    </div>
+                `;
+            } finally {
+                // 隐藏加载动画
+                loadingEl.style.display = "none";
+                // 滚动到底部
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        // 回车发送消息（支持Shift+Enter换行）
+        document.getElementById('user-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

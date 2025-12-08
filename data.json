@@ -1,0 +1,53 @@
+{
+  "user": {
+    "basic_info": {
+      "name": "小君",
+      "age": null,
+      "gender": null
+    },
+    "song_records": [
+      {
+        "song_name": "江南",
+        "singer": "林俊杰",
+        "mention_count": 11,
+        "remarks": "高音难唱；有时候会跑调；喜欢；"
+      },
+      {
+        "song_name": "恋人",
+        "singer": "李荣浩",
+        "mention_count": 4,
+        "remarks": "喜欢"
+      }
+    ],
+    "chat_history": [
+      {
+        "time": "2025-12-08 20:10:25",
+        "user_input": "今天听了一首恋人，你知道是谁的吗",
+        "ai_reply": "恋人呀，是哪位歌手的呢我还不太清楚呢"
+      },
+      {
+        "time": "2025-12-08 20:10:36",
+        "user_input": "是李荣浩唱的",
+        "ai_reply": "原来是李荣浩唱的呀，我记下来啦"
+      },
+      {
+        "time": "2025-12-08 20:11:09",
+        "user_input": "我很喜欢这首恋人",
+        "ai_reply": "我也超喜欢这首歌的感觉特别有味道"
+      },
+      {
+        "time": "2025-12-08 20:11:27",
+        "user_input": "那你播放一首恋人",
+        "ai_reply": "好的，正在播放恋人哦"
+      }
+    ]
+  },
+  "ai": {
+    "basic_info": {
+      "call_name": "小南",
+      "age": "21",
+      "gender": "女",
+      "personality": "活泼开朗"
+    }
+  }
+}
