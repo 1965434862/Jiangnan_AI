@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雷石智能K歌助手</title>
+    <title>小南</title>
     <style>
-        /* 全局样式 - 雷石高级质感色系 */
         * {
             margin: 0;
             padding: 0;
@@ -13,26 +12,23 @@
             font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
         }
         body {
-            /* 调整为比聊天框稍深的纯色渐变 移除纹理 */
-            background: linear-gradient(135deg, #12051e 0%, #150725 50%, #12051e 100%);
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fb 50%, #e8f4f8 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        /* 主容器 - 玻璃拟态+金属边框 */
         .container {
-            max-width: 850px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: rgba(26, 11, 46, 0.85);
-            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 0 40px rgba(123, 44, 191, 0.4), 
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(123, 44, 191, 0.3);
+            box-shadow: 0 0 30px rgba(66, 153, 225, 0.15), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(66, 153, 225, 0.1);
             backdrop-filter: blur(12px);
             position: relative;
             overflow: hidden;
         }
-        /* 顶部渐变光效 */
         .container::before {
             content: "";
             position: absolute;
@@ -40,58 +36,188 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #5a189a, #9d4edd, #5a189a);
-            border-radius: 16px 16px 0 0;
+            background: linear-gradient(90deg, #4299e1, #38b2ac, #4299e1);
+            border-radius: 20px 20px 0 0;
         }
-        /* 标题栏 - 金属质感文字 */
         .header {
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 1px solid rgba(123, 44, 191, 0.2);
+            border-bottom: 1px solid rgba(66, 153, 225, 0.1);
         }
         .header h1 {
-            color: #f8f9fa;
+            color: #2d3748;
             font-size: 38px;
             font-weight: 600;
             letter-spacing: 2px;
-            text-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
-            background: linear-gradient(120deg, #e0aaff, #f8f9fa);
+            text-shadow: 0 0 10px rgba(66, 153, 225, 0.1);
+            background: linear-gradient(120deg, #4299e1, #38b2ac);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .header p {
-            color: #bb86fc;
+            color: #4a5568;
             margin-top: 12px;
             font-size: 16px;
             letter-spacing: 1px;
             opacity: 0.8;
         }
-        /* 聊天记录区域 - 磨砂玻璃质感（比背景稍浅） */
+        /* 左右分栏布局 */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        /* 右侧音乐面板优化 - 改为flex布局，歌词占满剩余空间 */
+        .music-panel {
+            flex: 1;
+            background: rgba(247, 250, 252, 0.8);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 620px;
+            height: 100%; /* 确保高度铺满 */
+        }
+        /* 播放面板占位符 */
+        .music-placeholder {
+            color: #718096;
+            text-align: center;
+            font-size: 18px;
+            line-height: 2;
+            opacity: 0.7;
+        }
+        /* 歌曲播放容器改为flex布局，占满整个面板 */
+        .music-player-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+        /* 音频播放器样式 */
+        .audio-player {
+            width: 100%;
+            height: 50px;
+            border-radius: 8px;
+            border: 1px solid rgba(66, 153, 225, 0.2);
+            flex-shrink: 0; /* 防止被压缩 */
+        }
+        /* 歌词展示样式 - 只显示三行 */
+        .lyric-container {
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            padding: 0;
+            min-height: 320px; /* 进一步增加高度 */
+            height: 320px; /* 固定高度确保完全显示 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .lyric-scroll {
+            position: relative;
+            width: 100%;
+            transform: translateY(0);
+        }
+        /* 优化歌词行样式 - 三行显示专用 */
+        .lyric-line {
+            height: 90px; /* 进一步增加高度 */
+            line-height: 90px; /* 进一步增加行高 */
+            text-align: center;
+            font-size: 20px;
+            color: #6e7c7c;
+            transition: all 0.2s ease;
+            padding: 0 20px;
+            opacity: 0;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .lyric-line.prev {
+            opacity: 0.5;
+            transform: translateY(-90px); /* 与高度匹配 */
+        }
+        .lyric-line.active {
+            opacity: 1;
+            color: #4299e1;
+            font-size: 24px;
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(66, 153, 225, 0.2);
+            height: 90px; /* 与高度匹配 */
+            line-height: 90px; /* 与行高匹配 */
+            transform: translateY(0);
+        }
+        .lyric-line.next {
+            opacity: 0.5;
+            transform: translateY(90px); /* 与高度匹配 */
+        }
+        .music-panel {
+            flex: 1;
+            background: rgba(247, 250, 252, 0.8);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 700px; /* 进一步增加最小高度 */
+            height: 100%;
+        }
+        .song-title {
+            color: #2d3748;
+            font-size: 28px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            padding: 10px 0;
+            border-bottom: 2px solid rgba(66, 153, 225, 0.1);
+            width: 100%;
+        }
         .chat-box {
             height: 520px;
             overflow-y: auto;
-            background: rgba(18, 8, 30, 0.7);
-            border-radius: 12px;
+            background: rgba(247, 250, 252, 0.8);
+            border-radius: 16px;
             padding: 25px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(123, 44, 191, 0.2);
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 15px;
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        /* 自定义滚动条 - 紫金色系 */
         .chat-box::-webkit-scrollbar {
-            width: 10px;
+            width: 8px;
         }
         .chat-box::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #5a189a, #9d4edd);
+            background: linear-gradient(180deg, #4299e1, #38b2ac);
             border-radius: 8px;
-            border: 2px solid rgba(18, 8, 30, 0.5);
+            border: 2px solid rgba(247, 250, 252, 0.5);
         }
         .chat-box::-webkit-scrollbar-track {
-            background: rgba(18, 8, 30, 0.5);
+            background: rgba(247, 250, 252, 0.5);
             border-radius: 8px;
         }
-        /* 消息气泡样式 */
         .message {
             margin-bottom: 22px;
             max-width: 72%;
@@ -105,36 +231,42 @@
         }
         .message-content {
             padding: 18px 24px;
-            border-radius: 14px;
+            border-radius: 16px;
             position: relative;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.1);
             line-height: 1.7;
             font-size: 15px;
         }
-        /* 用户消息 - 紫金渐变 */
         .user-message .message-content {
-            background: linear-gradient(135deg, #5a189a, #7b2cbf);
+            background: linear-gradient(135deg, #4299e1, #38b2ac);
             color: #ffffff;
-            border: 1px solid rgba(157, 78, 221, 0.4);
+            border: 1px solid rgba(66, 153, 225, 0.2);
             border-bottom-right-radius: 6px;
         }
-        /* AI消息 - 深紫磨砂 */
         .ai-message .message-content {
-            background: rgba(36, 18, 61, 0.8);
-            color: #e0aaff;
-            border: 1px solid rgba(123, 44, 191, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            color: #2d3748;
+            border: 1px solid rgba(66, 153, 225, 0.1);
             border-bottom-left-radius: 6px;
         }
-        /* 消息时间戳 */
         .message-time {
             font-size: 12px;
-            color: #9d4edd;
+            color: #718096;
             margin-top: 8px;
             text-align: right;
             opacity: 0.7;
             letter-spacing: 0.5px;
         }
-        /* 输入区域 - 一体化设计 */
+        /* 输入区域布局调整 */
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .voice-btn-container {
+            display: flex;
+            justify-content: center;
+        }
         .input-area {
             display: flex;
             gap: 15px;
@@ -144,236 +276,785 @@
             flex: 1;
             height: 70px;
             padding: 20px 24px;
-            border-radius: 12px;
-            border: 1px solid rgba(123, 44, 191, 0.4);
-            background: rgba(18, 8, 30, 0.8);
-            color: #f8f9fa;
+            border-radius: 16px;
+            border: 1px solid rgba(66, 153, 225, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            color: #2d3748;
             font-size: 16px;
             outline: none;
             resize: none;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
         }
         #user-input:focus {
-            border-color: #9d4edd;
-            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3),
-                        inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            border-color: #4299e1;
+            box-shadow: 0 0 15px rgba(66, 153, 225, 0.1),
+                        inset 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         #user-input::placeholder {
-            color: #7b2cbf;
+            color: #a0aec0;
             opacity: 0.7;
         }
-        /* 按钮通用样式 - 金属质感 */
-        .btn {
-            height: 70px;
-            width: 70px;
-            border-radius: 12px;
-            border: 1px solid rgba(157, 78, 221, 0.4);
+        /* 大尺寸语音按钮：磨砂质感+浅色渐变 */
+        .voice-btn {
+            height: 80px;
+            width: 80px;
+            border-radius: 50%;
+            border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 32px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
-        }
-        /* 发送按钮 - 紫金渐变 */
-        .send-btn {
-            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
-            color: #ffffff;
-        }
-        .send-btn:hover {
-            background: linear-gradient(135deg, #5a189a, #7b2cbf);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(123, 44, 191, 0.4);
-        }
-        /* 语音按钮 - 磨砂金属 */
-        .voice-btn {
-            background: rgba(36, 18, 61, 0.8);
-            color: #e0aaff;
+            /* 磨砂+浅色渐变 */
+            background: linear-gradient(135deg, #f5fafe, #eaf6fa);
+            box-shadow: 
+                0 8px 20px rgba(66, 153, 225, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+            color: #4299e1;
             position: relative;
+            z-index: 10;
         }
         .voice-btn::after {
-            content: "长按K歌";
+            content: "点击录音/结束";
             position: absolute;
-            bottom: -28px;
+            bottom: -30px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 12px;
-            color: #bb86fc;
+            color: #718096;
             letter-spacing: 1px;
             opacity: 0.8;
         }
-        .voice-btn:hover {
-            background: rgba(51, 26, 85, 0.8);
-            border-color: #9d4edd;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(123, 44, 191, 0.3);
+        /* 录音状态样式 */
+        .voice-btn.recording {
+            background: linear-gradient(135deg, #fef7fb, #fcf1f7);
+            color: #e53e3e;
+            transform: scale(1.05);
+            box-shadow: 
+                0 10px 25px rgba(229, 62, 62, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(229, 62, 62, 0.1);
+            animation: breath 1.5s infinite ease-in-out;
         }
-        /* 加载动画 - 紫金呼吸效果 */
+        @keyframes breath {
+            0% { box-shadow: 0 10px 25px rgba(229, 62, 62, 0.2); }
+            50% { box-shadow: 0 10px 35px rgba(229, 62, 62, 0.3); }
+            100% { box-shadow: 0 10px 25px rgba(229, 62, 62, 0.2); }
+        }
+        .voice-btn:hover:not(.recording) {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 12px 25px rgba(66, 153, 225, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+        }
+        .voice-btn:active:not(.recording) {
+            transform: translateY(-1px);
+            box-shadow: 
+                0 6px 15px rgba(66, 153, 225, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+        }
+        .recording-indicator {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(229, 62, 62, 0.15);
+            animation: pulse 1.5s infinite ease-in-out;
+            z-index: -1;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(0.9); opacity: 0.5; }
+        }
+        /* 发送按钮：磨砂+浅色渐变 */
+        .send-btn {
+            height: 70px;
+            width: 70px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* 磨砂+浅色渐变 */
+            background: linear-gradient(135deg, #f5fafe, #eaf6fa);
+            box-shadow: 
+                0 6px 16px rgba(66, 153, 225, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+            color: #4299e1;
+        }
+        .send-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 20px rgba(66, 153, 225, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+        }
+        .send-btn:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 4px 12px rgba(66, 153, 225, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(66, 153, 225, 0.1);
+        }
         .loading {
-            color: #bb86fc;
+            color: #4299e1;
             text-align: center;
             padding: 12px;
             display: none;
-            font-size: 14px;
-            letter-spacing: 1px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: nowrap;
         }
+
         .loading span {
             display: inline-block;
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #7b2cbf, #e0aaff);
-            margin: 0 5px;
+            background: linear-gradient(135deg, #4299e1, #38b2ac);
             animation: loading 1.2s infinite alternate ease-in-out;
         }
+
         .loading span:nth-child(2) {
             animation-delay: 0.3s;
         }
+
         .loading span:nth-child(3) {
             animation-delay: 0.6s;
+        }
+
+        .loading span.loading-text {
+            background: transparent;
+            animation: none;
+            width: auto;
+            height: auto;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .loading span:last-child {
+            background: transparent;
+            animation: none;
+            width: auto;
+            height: auto;
+            font-size: 14px;
+        }
+        .loading-text {
+            background: transparent !important;
+            animation: none !important;
+            width: auto !important;
+            height: auto !important;
+            font-size: 14px;
+            margin-left: 5px;
         }
         @keyframes loading {
             from { transform: scale(0.8); opacity: 0.6; }
             to { transform: scale(1.5); opacity: 1; }
         }
+        .permission-tip {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #4299e1;
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 1px solid #4299e1;
+            box-shadow: 0 4px 20px rgba(66, 153, 225, 0.15);
+            z-index: 9999;
+            display: none;
+        }
+        .audio-play-btn {
+            margin-left: 10px;
+            cursor: pointer;
+            color: #4299e1;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .audio-play-btn:hover {
+            color: #3182ce;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
+    <div class="permission-tip" id="permission-tip">正在请求麦克风权限，请允许...</div>
     <div class="container">
-        <!-- 标题栏 -->
         <div class="header">
             <h1>江南</h1>
-            <p>🎵 我是江南，但我不会唱江南。</p>
+            <p>🎵 今天听什么歌曲呢？</p>
         </div>
-        
-        <!-- 聊天记录区域 -->
-        <div class="chat-box" id="chat-box">
-            <!-- 欢迎语 -->
-            <div class="message ai-message">
-                <div class="message-content">
-                    你好呀～🎶 我可以为您推荐歌曲、调节音效、解答歌曲相关问题，有任何需求都可以告诉我哦！
+        <!-- 左右分栏布局 -->
+        <div class="main-layout">
+            <!-- 左侧聊天面板 -->
+            <div class="chat-panel">
+                <div class="chat-box" id="chat-box">
+                    <div class="message ai-message">
+                        <div class="message-content">
+                            你好呀～🎶 我可以为您推荐歌曲、调节音效、解答歌曲相关问题，有任何需求都可以告诉我哦！
+                            <span class="audio-play-btn" onclick="playTTS('你好呀～🎶 我可以为您推荐歌曲、调节音效、解答歌曲相关问题，有任何需求都可以告诉我哦！')">🔊</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="loading" id="loading">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span class="loading-text">智能助手正在响应...</span>
+                </div>
+                
+                <!-- 输入区域 -->
+                <div class="input-wrapper">
+                    <div class="voice-btn-container">
+                        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
+                            <div class="recording-indicator" id="recording-indicator" style="display: none;"></div>
+                            🎙️
+                        </button>
+                    </div>
+                    <div class="input-area">
+                        <textarea id="user-input" placeholder="输入您想聊的内容..."></textarea>
+                        <button class="send-btn" onclick="sendMessage()">➤</button>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 加载动画 -->
-        <div class="loading" id="loading">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span>智能助手正在响应...</span>
-        </div>
-        
-        <!-- 输入区域 -->
-        <div class="input-area">
-            <textarea id="user-input" placeholder="输入您想聊的内容，或长按麦克风K歌..."></textarea>
-            <button class="btn voice-btn" ontouchstart="startVoice()" ontouchend="endVoice()" onmousedown="startVoice()" onmouseup="endVoice()" onmouseleave="endVoice()">🎤</button>
-            <button class="btn send-btn" onclick="sendMessage()">✈️</button>
+            
+            <!-- 右侧歌曲播放面板 -->
+            <div class="music-panel" id="music-panel">
+                <div class="music-placeholder">
+                    🎶 暂无播放歌曲<br/>
+                    说“播放一首特别的你”试试～
+                </div>
+                <!-- 歌曲播放容器（初始隐藏） -->
+                <div class="music-player-container" id="music-player-container" style="display: none;">
+                    <h3 class="song-title" id="song-title"></h3>
+                    <!-- 音频播放器 -->
+                    <audio id="audio-player" controls class="audio-player"></audio>
+                    <!-- 歌词展示区域 -->
+                    <div class="lyric-container" id="lyric-container">
+                        <div class="lyric-scroll" id="lyric-scroll"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 后端接口地址
-        const API_URL = "http://127.0.0.1:8000/api/chat";
+        const CHAT_API_URL = "http://127.0.0.1:8000/api/chat";
+        const ASR_API_URL = "http://127.0.0.1:8000/api/asr";
+        const TTS_API_URL = "http://127.0.0.1:8000/api/tts";
         
-        // 语音输入模拟（仅UI交互）
-        let isVoicePress = false;
-        function startVoice() {
-            isVoicePress = true;
-            const voiceBtn = document.querySelector('.voice-btn');
-            voiceBtn.style.background = 'rgba(51, 26, 85, 0.9)';
-            voiceBtn.style.borderColor = '#e0aaff';
-            voiceBtn.style.transform = 'translateY(-2px)';
-        }
-        function endVoice() {
-            if (isVoicePress) {
-                isVoicePress = false;
-                const voiceBtn = document.querySelector('.voice-btn');
-                voiceBtn.style.background = 'rgba(36, 18, 61, 0.8)';
-                voiceBtn.style.borderColor = 'rgba(157, 78, 221, 0.4)';
-                voiceBtn.style.transform = 'translateY(0)';
-                alert("雷石专业K歌语音功能正在加载中，敬请期待～");
+        let mediaStream = null;       
+        let mediaRecorder = null;     
+        let audioChunks = [];         
+        let isRecording = false;      
+        let isPermissionGranted = false;
+        let audioContext = null;
+
+        // 歌曲播放相关全局变量
+        let audioPlayer = null;
+        let currentLyrics = [];
+        let lyricScrollEl = null;
+        let lyricContainerEl = null;
+        let lastActiveIndex = -1;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const permissionTip = document.getElementById('permission-tip');
+            permissionTip.style.display = 'block';
+            
+            try {
+                // 初始化AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        sampleSize: 16,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    } 
+                });
+
+                isPermissionGranted = true;
+                console.log("✅ 麦克风权限已获取，AudioContext初始化完成");
+                permissionTip.style.display = 'none';
+
+            } catch (err) {
+                console.error("❌ 初始化失败:", err);
+                permissionTip.textContent = `初始化失败：${err.message}，请刷新页面`;
+                permissionTip.style.color = '#e53e3e';
+                setTimeout(() => {
+                    permissionTip.style.display = 'none';
+                }, 5000);
             }
+
+            // 初始化歌曲播放器
+            initMusicPlayer();
+        });
+
+        // ========== 歌曲播放相关函数 ==========
+        function initMusicPlayer() {
+            audioPlayer = document.getElementById('audio-player');
+            lyricScrollEl = document.getElementById('lyric-scroll');
+            lyricContainerEl = document.getElementById('lyric-container');
+            
+            // 监听音频播放结束事件
+            audioPlayer.onended = () => {
+                clearMusicPanel();
+            };
+            
+            // 优化歌词更新频率：每200ms更新一次，减少计算量
+            let lyricUpdateTimer = null;
+            audioPlayer.onplay = () => {
+                // 启动定时更新
+                lyricUpdateTimer = setInterval(() => {
+                    if (!audioPlayer.paused && !audioPlayer.ended) {
+                        syncLyrics();
+                    }
+                }, 200);
+            };
+            
+            audioPlayer.onpause = () => {
+                clearInterval(lyricUpdateTimer);
+            };
+            
+            audioPlayer.onended = () => {
+                clearInterval(lyricUpdateTimer);
+                clearMusicPanel();
+            };
         }
 
-        // 发送消息核心逻辑
-        async function sendMessage() {
-            const inputEl = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const loadingEl = document.getElementById('loading');
+        function getCurrentLyricIndex() {
+            if (!currentLyrics.length) return -1;
             
-            // 获取并校验输入内容
-            const userInput = inputEl.value.trim();
-            if (!userInput) {
-                alert("请输入内容后再发送～");
-                return;
+            const currentTime = audioPlayer.currentTime;
+            for (let i = 0; i < currentLyrics.length; i++) {
+                const lyricTime = parseFloat(currentLyrics[i].time);
+                const nextLyricTime = i + 1 < currentLyrics.length ? 
+                    parseFloat(currentLyrics[i+1].time) : Infinity;
+                
+                if (currentTime >= lyricTime && currentTime < nextLyricTime) {
+                    return i;
+                }
             }
             
-            // 清空输入框
-            inputEl.value = "";
+            return -1;
+        }
+
+        function clearMusicPanel() {
+            const musicPanel = document.getElementById('music-panel');
+            const playerContainer = document.getElementById('music-player-container');
+            const placeholder = document.querySelector('.music-placeholder');
             
-            // 添加用户消息到聊天框
+            // 重置状态
+            audioPlayer.pause();
+            audioPlayer.src = "";
+            currentLyrics = [];
+            lyricScrollEl.innerHTML = "";
+            lastActiveIndex = -1;
+            
+            // 显示占位符，隐藏播放器
+            playerContainer.style.display = "none";
+            placeholder.style.display = "block";
+            
+            // 提示播放结束
+            const chatBox = document.getElementById('chat-box');
             const now = new Date();
             const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
             chatBox.innerHTML += `
-                <div class="message user-message">
-                    <div class="message-content">${userInput}</div>
+                <div class="message ai-message">
+                    <div class="message-content">🎵 《${document.getElementById('song-title').textContent}》播放结束啦～</div>
                     <div class="message-time">${timeStr}</div>
                 </div>
             `;
-            
-            // 滚动到底部
             chatBox.scrollTop = chatBox.scrollHeight;
-            
-            // 显示加载动画
-            loadingEl.style.display = "block";
-            
+        }
+
+        async function loadAndPlaySong(songName) {
             try {
-                // 调用后端接口
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ user_input: userInput })
-                });
+                // 第一步：模糊匹配歌曲名
+                const matchRes = await fetch(`http://127.0.0.1:8000/api/music/match/${encodeURIComponent(songName)}`);
+                const matchData = await matchRes.json();
                 
-                const result = await response.json();
-                if (result.code === 200) {
-                    // 添加AI回复到聊天框
-                    chatBox.innerHTML += `
-                        <div class="message ai-message">
-                            <div class="message-content">${result.data.reply}</div>
-                            <div class="message-time">${timeStr}</div>
-                        </div>
-                    `;
-                } else {
-                    chatBox.innerHTML += `
-                        <div class="message ai-message">
-                            <div class="message-content">${result.msg || "系统暂未响应，请稍后再试～"}</div>
-                            <div class="message-time">${timeStr}</div>
-                        </div>
-                    `;
+                if (matchData.code !== 200) {
+                    alert(`未找到《${songName}》相关歌曲`);
+                    return;
                 }
-            } catch (error) {
+                
+                const songInfo = matchData.data;
+                const realSongName = songInfo.name;
+                
+                // 第二步：更新播放面板
+                const musicPanel = document.getElementById('music-panel');
+                const playerContainer = document.getElementById('music-player-container');
+                const placeholder = document.querySelector('.music-placeholder');
+                const songTitle = document.getElementById('song-title');
+                
+                // 显示播放器，隐藏占位符
+                placeholder.style.display = "none";
+                playerContainer.style.display = "flex";
+                songTitle.textContent = realSongName;
+                
+                // 第三步：加载音频
+                const audioUrl = `http://127.0.0.1:8000/api/music/play/${encodeURIComponent(realSongName)}`;
+                audioPlayer.src = audioUrl;
+                
+                // 第四步：加载并解析歌词
+                if (songInfo.has_lyric) {
+                    const lyricRes = await fetch(`http://127.0.0.1:8000/api/music/lyric/${encodeURIComponent(realSongName)}`);
+                    const lyricData = await lyricRes.json();
+                    if (lyricData.code === 200) {
+                        currentLyrics = lyricData.data;
+                        renderLyrics();
+                        lastActiveIndex = -1;
+                    }
+                }
+                
+                // 自动播放
+                try {
+                    await audioPlayer.play();
+                } catch (playErr) {
+                    console.warn("自动播放失败（浏览器限制），请手动点击播放:", playErr);
+                    const chatBox = document.getElementById('chat-box');
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
+                    chatBox.innerHTML += `
+                        <div class="message ai-message">
+                            <div class="message-content">🎵 已为你准备好《${realSongName}》，请点击播放按钮开始播放～</div>
+                            <div class="message-time">${timeStr}</div>
+                        </div>
+                    `;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+                
+                // 在聊天框提示
+                const chatBox = document.getElementById('chat-box');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
                 chatBox.innerHTML += `
                     <div class="message ai-message">
-                        <div class="message-content">网络连接异常，请检查后重试～</div>
+                        <div class="message-content">🎵 正在为你播放《${realSongName}》～</div>
                         <div class="message-time">${timeStr}</div>
                     </div>
                 `;
-            } finally {
-                // 隐藏加载动画
-                loadingEl.style.display = "none";
-                // 滚动到底部
                 chatBox.scrollTop = chatBox.scrollHeight;
+                
+            } catch (error) {
+                console.error("播放歌曲失败：", error);
+                alert(`播放歌曲失败：${error.message}`);
             }
         }
 
-        // 回车发送消息（支持Shift+Enter换行）
-        document.getElementById('user-input').addEventListener('keydown', function(e) {
+        // 重新实现歌词渲染 - 只渲染三行
+        function renderLyrics() {
+            lyricScrollEl.innerHTML = "";
+            lastActiveIndex = -1;
+            
+            // 先渲染所有歌词行（默认隐藏）
+            currentLyrics.forEach((lyric, index) => {
+                const lyricLine = document.createElement('div');
+                lyricLine.className = "lyric-line";
+                lyricLine.dataset.time = lyric.time;
+                lyricLine.dataset.index = index;
+                lyricLine.textContent = lyric.text;
+                lyricScrollEl.appendChild(lyricLine);
+            });
+            
+            // 初始显示第一行歌词
+            if (currentLyrics.length > 0) {
+                updateLyricHighlight(0);
+            }
+        }
+
+        // 核心修复：歌词同步逻辑 - 只显示三行
+        function syncLyrics() {
+            if (!currentLyrics.length || !lyricScrollEl || !lyricContainerEl) return;
+            
+            const activeIndex = getCurrentLyricIndex();
+            
+            // 只有当歌词索引变化时才更新，避免重复计算
+            if (activeIndex === -1 || activeIndex === lastActiveIndex) return;
+            
+            // 更新高亮和显示状态
+            updateLyricHighlight(activeIndex);
+            lastActiveIndex = activeIndex;
+        }
+
+        // 更新歌词高亮和显示状态 - 只显示当前行和上下行
+        function updateLyricHighlight(activeIndex) {
+            // 隐藏所有歌词行
+            document.querySelectorAll('.lyric-line').forEach(el => {
+                el.classList.remove('active', 'prev', 'next');
+                el.style.opacity = 0;
+            });
+            
+            // 显示当前行
+            const activeLine = document.querySelector(`.lyric-line[data-index="${activeIndex}"]`);
+            if (activeLine) {
+                activeLine.classList.add('active');
+                activeLine.style.opacity = 1;
+            }
+            
+            // 显示上一行
+            if (activeIndex > 0) {
+                const prevLine = document.querySelector(`.lyric-line[data-index="${activeIndex - 1}"]`);
+                if (prevLine) {
+                    prevLine.classList.add('prev');
+                    prevLine.style.opacity = 0.5;
+                }
+            }
+            
+            // 显示下一行
+            if (activeIndex < currentLyrics.length - 1) {
+                const nextLine = document.querySelector(`.lyric-line[data-index="${activeIndex + 1}"]`);
+                if (nextLine) {
+                    nextLine.classList.add('next');
+                    nextLine.style.opacity = 0.5;
+                }
+            }
+        }
+
+        // ========== 录音相关函数 ==========
+        function convertWebMToPCM(webmBlob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const audioBuffer = await audioContext.decodeAudioData(e.target.result);
+                        const monoBuffer = audioContext.createBuffer(
+                            1, 
+                            audioBuffer.length, 
+                            audioBuffer.sampleRate
+                        );
+                        
+                        // 合并声道
+                        const channelData = audioBuffer.getChannelData(0);
+                        monoBuffer.copyToChannel(channelData, 0);
+                        
+                        // 转换为16位PCM
+                        const data = monoBuffer.getChannelData(0);
+                        const float32Array = new Float32Array(data);
+                        const int16Array = new Int16Array(float32Array.length);
+                        
+                        for (let i = 0; i < float32Array.length; i++) {
+                            const s = Math.max(-1, Math.min(1, float32Array[i]));
+                            int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                        }
+                        
+                        resolve(int16Array.buffer);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(webmBlob);
+            });
+        }
+
+        async function toggleRecording() {
+            if (!isPermissionGranted) {
+                alert("麦克风权限未授权，无法录音！");
+                return;
+            }
+
+            const voiceBtn = document.getElementById('voice-btn');
+            const recordingIndicator = document.getElementById('recording-indicator');
+
+            if (!isRecording) {
+                // 开始录音
+                isRecording = true;
+                voiceBtn.classList.add('recording');
+                recordingIndicator.style.display = 'block';
+                
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm; codecs=opus' });
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.start(100); 
+                console.log("🎤 开始录音...");
+
+            } else {
+                // 结束录音
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+                recordingIndicator.style.display = 'none';
+                
+                if (mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    console.log("🛑 停止录音，等待处理...");
+                    
+                    mediaRecorder.onstop = async () => {
+                        try {
+                            const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const pcmBuffer = await convertWebMToPCM(webmBlob);
+                            await sendAudioToASR(pcmBuffer);
+                        } catch (err) {
+                            console.error("❌ 录音处理失败:", err);
+                            alert(`录音处理失败: ${err.message}`);
+                        }
+                    };
+                }
+            }
+        }
+
+        async function sendAudioToASR(pcmBuffer) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            try {
+                const blob = new Blob([pcmBuffer], { type: 'application/octet-stream' });
+                const formData = new FormData();
+                formData.append('audio_file', blob, 'recording.pcm');
+
+                const response = await fetch(ASR_API_URL, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors'
+                });
+
+                const result = await response.json();
+                loading.style.display = 'none';
+
+                if (result.code === 200) {
+                    const asrText = result.data.asr_text;
+                    const aiReply = result.data.ai_reply;
+                    const playSong = result.data.play_song;
+                    
+                    // 添加用户语音转文字消息
+                    addMessageToChat('user', asrText);
+                    
+                    // 添加AI回复
+                    addMessageToChat('ai', aiReply);
+                    
+                    // 自动播放TTS
+                    if (result.data.tts_text) {
+                        playTTS(result.data.tts_text);
+                    }
+
+                    // 如果需要播放歌曲
+                    if (playSong) {
+                        await loadAndPlaySong(playSong);
+                    }
+                    
+                } else {
+                    alert(`语音识别失败: ${result.msg}`);
+                    addMessageToChat('ai', `抱歉，${result.msg}😥`);
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                console.error("❌ ASR请求失败:", err);
+                alert(`语音识别请求失败: ${err.message}`);
+                addMessageToChat('ai', `抱歉，语音识别请求失败了😥`);
+            }
+        }
+
+        // ========== 聊天相关函数 ==========
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input').trim();
+            if (!userInput) return;
+
+            // 添加用户消息
+            addMessageToChat('user', userInput);
+            document.getElementById('user-input').value = '';
+
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            try {
+                const response = await fetch(CHAT_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_input: userInput }),
+                    mode: 'cors'
+                });
+
+                const result = await response.json();
+                loading.style.display = 'none';
+
+                if (result.code === 200) {
+                    const aiReply = result.data.reply;
+                    const playSong = result.data.play_song;
+                    
+                    // 添加AI回复
+                    addMessageToChat('ai', aiReply);
+                    
+                    // 自动播放TTS
+                    if (result.data.tts_text) {
+                        playTTS(result.data.tts_text);
+                    }
+
+                    // 如果需要播放歌曲
+                    if (playSong) {
+                        await loadAndPlaySong(playSong);
+                    }
+                    
+                } else {
+                    addMessageToChat('ai', `抱歉，${result.msg}😥`);
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                console.error("❌ 聊天请求失败:", err);
+                addMessageToChat('ai', `抱歉，请求失败了😥`);
+            }
+        }
+
+        function addMessageToChat(role, content) {
+            const chatBox = document.getElementById('chat-box');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // 处理换行符
+            const formattedContent = content.replace(/～/g, '<br/>');
+            contentDiv.innerHTML = `${formattedContent}${role === 'ai' ? ` <span class="audio-play-btn" onclick="playTTS('${content.replace(/'/g, "\\'")}')">🔊</span>` : ''}`;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = timeStr;
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            chatBox.appendChild(messageDiv);
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function playTTS(text) {
+            try {
+                const encodedText = encodeURIComponent(text);
+                const audio = new Audio(`${TTS_API_URL}?text=${encodedText}`);
+                audio.play();
+            } catch (err) {
+                console.error("❌ TTS播放失败:", err);
+                alert(`语音播放失败: ${err.message}`);
+            }
+        }
+
+        // 回车发送消息
+        document.getElementById('user-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
