@@ -8,7 +8,7 @@
 💾 交互记忆：通过 data.json 持久化存储用户聊天记录、歌曲偏好、AI 人设信息  
 🎨 精美 UI：响应式布局，磨砂质感设计，沉浸式交互体验  
 
-KTV-AI/  
+Jiangnan-AI/  
 ├── backend.py          # 后端核心代码（FastAPI服务）  
 ├── frontend.html       # 前端页面（交互界面）  
 ├── data.json           # 基础信息与交互记忆存储  
