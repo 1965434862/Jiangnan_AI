@@ -17,7 +17,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px; /* 加宽容器 */
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -62,17 +62,50 @@
             letter-spacing: 1px;
             opacity: 0.8;
         }
-        /* 左右分栏布局 */
+        /* 重新布局：视频面板 + 聊天面板 + 音乐面板 */
         .main-layout {
             display: flex;
             gap: 20px;
             width: 100%;
+        }
+        /* 虚拟角色视频面板 */
+        .avatar-panel {
+            flex: 0 0 400px; /* 固定宽度，大尺寸显示 */
+            background: rgba(247, 250, 252, 0.8);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 700px;
+            position: relative;
+            overflow: hidden;
+        }
+        .avatar-video-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+        .avatar-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .chat-panel {
             flex: 1;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            min-width: 400px;
         }
         /* 右侧音乐面板优化 - 改为flex布局，歌词占满剩余空间 */
         .music-panel {
@@ -86,7 +119,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 620px;
+            min-height: 700px;
             height: 100%; /* 确保高度铺满 */
         }
         /* 播放面板占位符 */
@@ -170,20 +203,6 @@
         .lyric-line.next {
             opacity: 0.5;
             transform: translateY(90px); /* 与高度匹配 */
-        }
-        .music-panel {
-            flex: 1;
-            background: rgba(247, 250, 252, 0.8);
-            border-radius: 16px;
-            padding: 25px;
-            border: 1px solid rgba(66, 153, 225, 0.1);
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 700px; /* 进一步增加最小高度 */
-            height: 100%;
         }
         .song-title {
             color: #2d3748;
@@ -494,9 +513,21 @@
             <h1>江南</h1>
             <p>🎵 今天听什么歌曲呢？</p>
         </div>
-        <!-- 左右分栏布局 -->
+        <!-- 重新布局：视频面板 + 聊天面板 + 音乐面板 -->
         <div class="main-layout">
-            <!-- 左侧聊天面板 -->
+            <!-- 左侧虚拟角色视频面板 -->
+            <div class="avatar-panel">
+                <div class="avatar-video-container">
+                    <video id="normal-video" class="avatar-video" loop muted autoplay playsinline>
+                        <source src="xiaonan/xiaonannormal.mp4" type="video/mp4">
+                    </video>
+                    <video id="talking-video" class="avatar-video" loop muted playsinline style="display: none;">
+                        <source src="xiaonan/xiaonantalking.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+            
+            <!-- 中间聊天面板 -->
             <div class="chat-panel">
                 <div class="chat-box" id="chat-box">
                     <div class="message ai-message">
@@ -567,6 +598,12 @@
         let lyricContainerEl = null;
         let lastActiveIndex = -1;
 
+        // 虚拟角色视频相关变量
+        let normalVideo = null;
+        let talkingVideo = null;
+        let ttsAudio = null; // 当前播放的TTS音频
+        let isTalking = false; // 是否正在说话
+
         window.addEventListener('DOMContentLoaded', async () => {
             const permissionTip = document.getElementById('permission-tip');
             permissionTip.style.display = 'block';
@@ -601,9 +638,62 @@
                 }, 5000);
             }
 
+            // 初始化虚拟角色视频
+            initAvatarVideos();
+            
             // 初始化歌曲播放器
             initMusicPlayer();
         });
+
+        // ========== 虚拟角色视频相关函数 ==========
+        function initAvatarVideos() {
+            normalVideo = document.getElementById('normal-video');
+            talkingVideo = document.getElementById('talking-video');
+            
+            // 监听视频加载完成事件
+            normalVideo.onloadeddata = function() {
+                this.play();
+            };
+            
+            talkingVideo.onloadeddata = function() {
+                this.play();
+            };
+            
+            // 视频加载失败处理
+            normalVideo.onerror = function() {
+                console.error("正常状态视频加载失败:", this.src);
+            };
+            
+            talkingVideo.onerror = function() {
+                console.error("说话状态视频加载失败:", this.src);
+            };
+        }
+
+        // 切换到说话状态
+        function switchToTalkingMode() {
+            if (isTalking) return;
+            
+            isTalking = true;
+            // 强制视频立即播放（跳过预加载延迟）
+            normalVideo.style.display = 'none';
+            talkingVideo.style.display = 'block';
+            talkingVideo.currentTime = 0; // 重置视频到开头
+            talkingVideo.play().catch(err => {
+                console.warn("视频播放触发失败（浏览器策略）:", err);
+                // 降级方案：即使play失败，也强制显示视频
+                talkingVideo.style.display = 'block';
+            });
+        }
+
+        // 切换到正常状态
+        function switchToNormalMode() {
+            if (!isTalking) return;
+            
+            isTalking = false;
+            talkingVideo.style.display = 'none';
+            normalVideo.style.display = 'block';
+            normalVideo.play();
+        }
 
         // ========== 歌曲播放相关函数 ==========
         function initMusicPlayer() {
@@ -942,9 +1032,9 @@
                     // 添加AI回复
                     addMessageToChat('ai', aiReply);
                     
-                    // 自动播放TTS
+                    // 自动播放TTS并切换视频状态
                     if (result.data.tts_text) {
-                        playTTS(result.data.tts_text);
+                        await playTTS(result.data.tts_text);
                     }
 
                     // 如果需要播放歌曲
@@ -996,9 +1086,9 @@
                     // 添加AI回复
                     addMessageToChat('ai', aiReply);
                     
-                    // 自动播放TTS
+                    // 自动播放TTS并切换视频状态
                     if (result.data.tts_text) {
-                        playTTS(result.data.tts_text);
+                        await playTTS(result.data.tts_text);
                     }
 
                     // 如果需要播放歌曲
@@ -1044,10 +1134,35 @@
 
         async function playTTS(text) {
             try {
+                // 停止之前的TTS播放
+                if (ttsAudio) {
+                    ttsAudio.pause();
+                    ttsAudio = null;
+                }
+                
+                // 切换到说话状态
+                switchToTalkingMode();
+                
                 const encodedText = encodeURIComponent(text);
-                const audio = new Audio(`${TTS_API_URL}?text=${encodedText}`);
-                audio.play();
+                ttsAudio = new Audio(`${TTS_API_URL}?text=${encodedText}`);
+                
+                // 监听音频播放结束，切换回正常状态
+                ttsAudio.onended = function() {
+                    switchToNormalMode();
+                    ttsAudio = null;
+                };
+                
+                // 监听音频播放出错，切换回正常状态
+                ttsAudio.onerror = function() {
+                    switchToNormalMode();
+                    ttsAudio = null;
+                    console.error("TTS音频播放出错");
+                };
+                
+                await ttsAudio.play();
+                
             } catch (err) {
+                switchToNormalMode();
                 console.error("❌ TTS播放失败:", err);
                 alert(`语音播放失败: ${err.message}`);
             }

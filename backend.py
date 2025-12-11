@@ -6,7 +6,7 @@ import logging
 import urllib3
 from pathlib import Path
 from datetime import datetime
-
+from fastapi.staticfiles import StaticFiles
 import requests
 from fastapi import FastAPI, HTTPException, UploadFile, File, Response
 from fastapi.responses import FileResponse
@@ -35,11 +35,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("KTV-AI")
 
-##########################################
-##########################################
-#阿里云配置暂时隐藏
-##########################################
-##########################################
+
 
 # 歌曲配置
 MUSIC_DIR = Path(os.path.dirname(__file__)) / "music"
@@ -55,6 +51,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/xiaonan", StaticFiles(directory="xiaonan"), name="xiaonan")
+
+# 2. 主页路由
+@app.get("/")
+async def serve_frontend():
+    # 确保frontend.html在项目根目录（和backend.py同级）
+    frontend_path = Path(os.path.dirname(__file__)) / "frontend.html"
+    if not frontend_path.exists():
+        raise HTTPException(status_code=404, detail="前端文件frontend.html不存在")
+    return FileResponse(frontend_path)
+
+# 3. 也可以通过 http://localhost:8000/frontend.html
+@app.get("/frontend.html")
+async def serve_frontend_direct():
+    frontend_path = Path(os.path.dirname(__file__)) / "frontend.html"
+    if not frontend_path.exists():
+        raise HTTPException(status_code=404, detail="前端文件frontend.html不存在")
+    return FileResponse(frontend_path)
 
 # ========== 数据操作函数 ==========
 class DataOperate:
@@ -415,7 +429,7 @@ def call_qwen_api(user_input: str):
 
 ### 第四步：回复生成规则
 1. 严格遵循你的性格【{ai_personality}】生成多段回复（1-4句）：
-2. 播放歌曲意图：回复必须简洁（每句不超过10字，总长度不超过20字），轻快活泼
+2. 播放歌曲意图：回复必须简洁（每句不超过20字，总长度不超过20字），轻快活泼
 3. 有方法调用时：回复需明确体现操作结果，分多句说明
 4. 无方法调用时：仅需符合性格，自然分多句回应用户
 5. 所有回复禁止使用\n换行符，用～作为分句分隔符
