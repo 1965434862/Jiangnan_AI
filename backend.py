@@ -1,13 +1,13 @@
+import requests
+import json
 import os
 import re
-import json
 import time
 import logging
 import urllib3
 from pathlib import Path
 from datetime import datetime
 from fastapi.staticfiles import StaticFiles
-import requests
 from fastapi import FastAPI, HTTPException, UploadFile, File, Response
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,9 +33,11 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger("KTV-AI")
+logger = logging.getLogger("xiaonan-AI")
 
-
+#=============================================================
+#=================各种key与url，暂时隐藏========================
+#=============================================================
 
 # 歌曲配置
 MUSIC_DIR = Path(os.path.dirname(__file__)) / "music"
@@ -43,7 +45,7 @@ if not MUSIC_DIR.exists():
     MUSIC_DIR.mkdir(exist_ok=True)
 
 # 初始化FastAPI
-app = FastAPI(title="KTV AI助手")
+app = FastAPI(title="小南AI助手")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,13 +58,11 @@ app.mount("/xiaonan", StaticFiles(directory="xiaonan"), name="xiaonan")
 # 2. 主页路由
 @app.get("/")
 async def serve_frontend():
-    # 确保frontend.html在项目根目录（和backend.py同级）
     frontend_path = Path(os.path.dirname(__file__)) / "frontend.html"
     if not frontend_path.exists():
         raise HTTPException(status_code=404, detail="前端文件frontend.html不存在")
     return FileResponse(frontend_path)
 
-# 3. 也可以通过 http://localhost:8000/frontend.html
 @app.get("/frontend.html")
 async def serve_frontend_direct():
     frontend_path = Path(os.path.dirname(__file__)) / "frontend.html"
@@ -77,7 +77,6 @@ class DataOperate:
         self.init_data_file()
 
     def init_data_file(self):
-        """初始化数据文件"""
         if not os.path.exists(self.data_file):
             init_data = {
                 "user": {
@@ -93,7 +92,6 @@ class DataOperate:
                 json.dump(init_data, f, ensure_ascii=False, indent=2)
 
     def read_data(self):
-        """读取数据文件"""
         try:
             with open(self.data_file, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -103,7 +101,6 @@ class DataOperate:
             return self.read_data()
 
     def write_data(self, data):
-        """写入数据文件"""
         try:
             with open(self.data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -112,31 +109,22 @@ class DataOperate:
             logger.error(f"写入数据文件失败：{e}")
             return {"status": "fail", "msg": str(e)}
 
-    def get_context_prompt(self):
-        """获取上下文提示词"""
-        data = self.read_data()
-        return json.dumps(data, ensure_ascii=False)
-
     def get_chat_history(self):
-        """获取聊天历史"""
         data = self.read_data()
         return data["user"]["chat_history"][-MAX_CHAT_HISTORY:]
 
     def add_chat_history(self, user_input, ai_reply):
-        """添加聊天记录"""
         data = self.read_data()
         data["user"]["chat_history"].append({
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "user_input": user_input,
             "ai_reply": ai_reply
         })
-        # 限制历史记录数量
         if len(data["user"]["chat_history"]) > 20:
             data["user"]["chat_history"] = data["user"]["chat_history"][-20:]
         self.write_data(data)
 
     def update_basic_info(self, role, info):
-        """更新基础信息"""
         data = self.read_data()
         updated_fields = {}
         for key, value in info.items():
@@ -147,47 +135,160 @@ class DataOperate:
         return {**res, "updated_fields": updated_fields}
 
     def update_song_record(self, song_name, singer, remarks):
-        """更新歌曲记录"""
         data = self.read_data()
         song_records = data["user"]["song_records"]
-        # 检查是否已存在
+        
+        # 清理入参（去除空格，统一空值为""）
+        song_name = song_name.strip() if song_name else ""
+        singer = singer.strip() if singer else ""
+        remarks = remarks.strip() if remarks else ""
+
+        # 精准匹配（歌曲名+歌手）
+        target = None
         for record in song_records:
-            if record["song_name"] == song_name and record["singer"] == singer:
-                record["mention_count"] += 1
-                if remarks and remarks not in record["remarks"]:
-                    record["remarks"] += ";" + remarks
-                res = self.write_data(data)
-                return {**res, "record": record}
-        # 新增记录
-        new_record = {
-            "song_name": song_name,
-            "singer": singer,
-            "mention_count": 1,
-            "remarks": remarks or ""
-        }
-        song_records.append(new_record)
+            rec_song = record["song_name"].strip()
+            rec_singer = record["singer"].strip() if record["singer"] else ""
+            if rec_song == song_name and rec_singer == singer:
+                target = record
+                break
+        
+        # 模糊匹配（仅歌曲名，补充歌手和备注）
+        if not target and song_name:
+            for record in song_records:
+                rec_song = record["song_name"].strip()
+                if rec_song == song_name:
+                    target = record
+                    # 补充歌手（如果新歌手不为空且原歌手为空）
+                    if singer and not target["singer"]:
+                        target["singer"] = singer
+                    break
+        
+        # 更新或新增记录
+        if target:
+            # 更新计数
+            target["mention_count"] += 1
+            # 追加备注（避免重复）
+            if remarks and remarks not in target["remarks"]:
+                if target["remarks"]:
+                    target["remarks"] += ";" + remarks
+                else:
+                    target["remarks"] = remarks
+            res = self.write_data(data)
+            return {**res, "record": target}
+        else:
+            # 无匹配记录，新增
+            new_record = {
+                "song_name": song_name,
+                "singer": singer,
+                "mention_count": 1,
+                "remarks": remarks
+            }
+            song_records.append(new_record)
+            res = self.write_data(data)
+            return {**res, "record": new_record}
+
+    # 更新用户基础信息（name/age/gender）
+    def update_user_info(self, info):
+        """
+        更新用户的基础信息
+        :param info: 字典，如 {"name": "小明", "age": "25", "gender": "男"}
+        :return: 更新结果
+        """
+        data = self.read_data()
+        updated_fields = {}
+        # 仅允许更新 name/age/gender 三个字段
+        valid_fields = ["name", "age", "gender"]
+        for key, value in info.items():
+            if value and key in valid_fields:
+                data["user"]["basic_info"][key] = value
+                updated_fields[key] = value
         res = self.write_data(data)
-        return {**res, "record": new_record}
+        return {**res, "updated_fields": updated_fields}
 
     def append_song_remarks(self, song_name, singer, new_remarks):
-        """追加歌曲备注"""
-        data = self.read_data()
-        song_records = data["user"]["song_records"]
-        for record in song_records:
-            if record["song_name"] == song_name and record["singer"] == singer:
-                if new_remarks and new_remarks not in record["remarks"]:
-                    record["remarks"] += ";" + new_remarks
-                res = self.write_data(data)
-                return {**res, "record": record}
-        # 不存在则新增
         return self.update_song_record(song_name, singer, new_remarks)
 
-# 初始化数据操作实例
 data_operate = DataOperate()
+
+# ========== 百度AI搜索封装函数 ==========
+def call_baidu_ai_search(user_query: str) -> dict:
+    """调用百度AI搜索，返回精简结果"""
+    headers = {
+        "Authorization": f"Bearer {BAIDU_AI_SEARCH_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "messages": [{"role": "user", "content": user_query}],
+        "stream": False,
+        "model": "ernie-3.5-8k",
+        "search_mode": "required",
+        "enable_deep_search": False,
+        "resource_type_filter": [{"type": "web", "top_k": 3}],
+        "max_reference_count": 3,
+        "instruction": "回答需简洁准确，包含核心信息，不超过100字",
+        "temperature": 0.1,
+        "top_p": 0.1
+    }
+
+    try:
+        response = requests.post(
+            BAIDU_AI_SEARCH_URL,
+            headers=headers,
+            json=payload,
+            timeout=20,
+            verify=False
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # ========== 打印完整的百度搜索原始结果 ==========
+        logger.info("="*50 + " 百度AI搜索原始返回数据 " + "="*50)
+        logger.info(json.dumps(result, ensure_ascii=False, indent=2))
+        logger.info("="*110)
+        
+        ai_answer = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        ai_answer = re.sub(r'\*\*', '', ai_answer)
+        ai_answer = re.sub(r'\n+', ' ', ai_answer) 
+        ai_answer = re.sub(r'\^\[\d+\]\^', '', ai_answer) 
+        references = result.get("references", [])[:3]
+        simplified_refs = []
+        for ref in references:
+            simplified_refs.append({
+                "title": ref.get("title", ""),
+                "url": ref.get("url", ""),
+                "content": ref.get("content", "")[:100] + "..." if ref.get("content") else ""
+            })
+        
+        # ========== 打印AI总结和参考来源 ==========
+        logger.info(f"\n🎵 百度AI搜索总结答案：")
+        logger.info("-"*80)
+        logger.info(f"### AI总结回答：\n{ai_answer}")
+        logger.info(f"\n📚 参考来源（仅前3条）：")
+        for i, ref in enumerate(simplified_refs, 1):
+            logger.info(f"{i}. 标题：{ref['title']}")
+            logger.info(f"   链接：{ref['url']}")
+            logger.info(f"   核心内容：{ref['content']}")
+            logger.info("-"*40)
+        
+        return {
+            "status": "success",
+            "ai_answer": ai_answer,
+            "references": simplified_refs,
+            "raw_result": result  # 返回原始结果，方便后续调试
+        }
+    except Exception as e:
+        logger.error(f"百度AI搜索调用失败：{str(e)}")
+        return {
+            "status": "fail",
+            "msg": str(e),
+            "ai_answer": "",
+            "references": [],
+            "raw_result": {}
+        }
 
 # ========== 阿里云相关函数 ==========
 def get_aliyun_token():
-    """获取阿里云Token"""
     global TOKEN_CACHE
     now = time.time()
     if TOKEN_CACHE["token"] and now < TOKEN_CACHE["expire_time"]:
@@ -219,7 +320,6 @@ def get_aliyun_token():
         raise HTTPException(status_code=500, detail=f"获取阿里云鉴权Token失败：{str(e)}")
 
 def call_aliyun_asr(audio_bytes: bytes):
-    """调用阿里云ASR"""
     token = get_aliyun_token()
     
     if len(audio_bytes) == 0:
@@ -275,7 +375,6 @@ def call_aliyun_asr(audio_bytes: bytes):
         }
 
 def generate_tts_audio_stream(text: str):
-    """生成TTS音频流"""
     try:
         token = get_aliyun_token()
         
@@ -329,7 +428,6 @@ def generate_tts_audio_stream(text: str):
 
 # ========== Qwen相关函数 ==========
 def clean_text(text: str) -> str:
-    """清理文本中的异常字符"""
     if not text:
         return ""
     text = re.sub(r'(?<![a-zA-Z0-9])n(?![a-zA-Z0-9])', '～', text)
@@ -339,8 +437,6 @@ def clean_text(text: str) -> str:
     return text
 
 def shorten_play_reply(reply: str, song_name: str) -> str:
-    """缩短播放相关的回复长度（控制在20字以内）"""
-    # 预设简洁的播放回复模板
     play_templates = [
         f"马上为你播放《{song_name}》～",
         f"来啦～《{song_name}》这就安排✨",
@@ -348,125 +444,193 @@ def shorten_play_reply(reply: str, song_name: str) -> str:
         f"《{song_name}》已为你响起～",
         f"安排！《{song_name}》这就播放～"
     ]
-    
-    # 如果原回复过长，使用模板
     if len(reply) > 20:
         return play_templates[0]
-    # 否则精简原回复
     else:
-        # 移除多余的修饰词，保留核心
         reply = re.sub(r'非常|特别|真的|超级|真的超', '', reply)
         reply = re.sub(r'～+', '～', reply)
-        # 确保长度不超过20字
         if len(reply) > 20:
             reply = reply[:18] + "～"
         return reply
 
-def call_qwen_api(user_input: str):
-    """调用Qwen API"""
-    context = data_operate.get_context_prompt()
-    chat_history = data_operate.get_chat_history()
-    
-    data = data_operate.read_data()
-    ai_info = data["ai"]["basic_info"]
-    user_info = data["user"]["basic_info"]
+def call_qwen_first_judge(user_input: str):
+    """
+    第一次调用Qwen：同时完成两个任务
+    1. 判断是否需要外部搜索
+    2. 提取需要执行的后端方法调用
+    返回格式：{need_search: bool, methods: list, reason: str}
+    """
+    full_data = data_operate.read_data()
+    clean_context = {
+        "user": {
+            "basic_info": full_data["user"]["basic_info"],
+            "song_records": full_data["user"]["song_records"][-50:]
+        },
+        "ai": full_data["ai"]
+    }
+    context_json = json.dumps(clean_context, ensure_ascii=False, indent=2)
+    chat_history = full_data["user"]["chat_history"][-MAX_CHAT_HISTORY:]
+    ai_info = full_data["ai"]["basic_info"]
+    user_info = full_data["user"]["basic_info"]
     
     ai_call_name = ai_info.get("call_name", "小南")
     user_name = user_info.get("name", "小君")
     ai_personality = ai_info.get("personality", "活泼开朗")
-    
-    system_prompt = r"""### 第一步：角色与上下文说明
-你是一个名为【{call_name}】的AI助手，性格为【{ai_personality}】，用户名为【{user_name}】，双方的核心交互场景是歌曲相关的聊天与管理。
 
-#### 用户基础信息（JSON结构说明）：
+    # 整合后的System Prompt：强化歌曲备注提取逻辑
+    system_prompt = f"""
+### 角色与上下文
+你是名为【{ai_call_name}】的歌曲AI助手，性格【{ai_personality}】，用户是【{user_name}】。
+用户记忆库：
+{context_json}
+历史聊天记录：{json.dumps(chat_history, ensure_ascii=False)}
+
+### 核心任务（必须同时完成）
+#### 任务1：判断是否需要外部搜索
+- 需要搜索的场景：用户询问歌曲、歌手、歌词等**未知知识类问题**（本地记忆库无相关信息）
+- 不需要搜索的场景：
+  1. 正常聊天、修改AI信息、**修改用户信息**、播放歌曲、管理歌曲记录等**功能类操作**
+  2. 本地记忆库已有相关信息的歌曲问题（如用户提及已记录的歌曲）
+  3. 包含"播放/放/听"等关键词的歌曲播放指令（无论本地是否有该歌曲）
+  4. 你觉得等，询问主观建议问题。
+
+#### 任务2：提取后端方法调用
+请精准分析用户当前输入【{user_input}】的意图，提取需要执行的后端方法，按以下规则：
+1. 可调用方法：update_ai_info、**update_user_info**、update_song_record、append_song_remarks、play_song
+2. 多意图按逻辑顺序排列，无意图则返回空数组
+3. 方法参数必须合法（参考下方说明）
+
+### 方法调用规则（必须严格遵守）
+1. update_ai_info：修改AI信息，参数支持call_name/age/gender/personality
+   示例：{{"method":"update_ai_info","params":{{"call_name":"冷姐","personality":"高冷"}}}}
+2. **update_user_info**：修改用户信息，参数支持name/age/gender
+   触发场景：用户说「我改名了叫小明」「我的年龄是25」「我是男生」
+   示例：{{"method":"update_user_info","params":{{"name":"小明"}}}}
+3. update_song_record：新增/更新歌曲记录，必传song_name，可选singer/remarks
+   示例：{{"method":"update_song_record","params":{{"song_name":"特别的人","singer":"方大同"}}}}
+4. append_song_remarks：追加歌曲备注，必传song_name/new_remarks，可选singer
+   触发场景：用户提及已记录的歌曲并描述相关体验（如"唱特别的人会跑调"、"特别的人很好听"、"特别的人太难唱了"），或询问该歌曲主观意见。（只追加记录用户的主观感受）
+   示例1：{{"method":"append_song_remarks","params":{{"song_name":"特别的人","new_remarks":"唱歌会跑调"}}}}
+   示例2：{{"method":"append_song_remarks","params":{{"song_name":"特别的人","singer":"方大同","new_remarks":"很好听"}}}}
+5. play_song：播放歌曲，必传song_name
+   示例：{{"method":"play_song","params":{{"song_name":"特别的人"}}}}
+
+### 关键补充规则
+- 只要用户提及本地记忆库中已有的歌曲（如《特别的人》）并描述相关体验/感受，必须调用append_song_remarks方法
+- append_song_remarks的new_remarks参数需精准提取用户的核心体验（如"唱歌会跑调"、"太难唱"、"很好听"等）
+- 若用户同时有多个意图（如聊天+追加备注），优先提取append_song_remarks方法
+
+### 输出格式要求（必须返回严格的JSON，无任何额外内容）
 {{
-  "basic_info": {{
-    "name": "用户名",
-    "age": "年龄",
-    "gender": "性别"
-  }},
-  "song_records": [  // 用户提及过的歌曲记录
-    {{
-      "song_name": "歌曲名",
-      "singer": "歌手名",
-      "mention_count": "提及次数（数字）",
-      "remarks": "备注（用户对歌曲的描述/喜好，多个备注用分号分隔）"
-    }}
-  ],
-  "chat_history": [  // 历史聊天记录
-    {{
-      "time": "聊天时间",
-      "user_input": "用户输入内容",
-      "ai_reply": "你的回复内容"
-    }}
-  ]
+    "need_search": true/false,
+    "methods": [], // 方法调用数组，无则为空
+    "reason": "判断是否需要搜索的详细理由"
 }}
-
-#### AI基础信息（JSON结构说明）：
-{{
-  "basic_info": {{
-    "call_name": "你的称呼",
-    "age": "年龄",
-    "gender": "性别",
-    "personality": "性格描述"
-  }}
-}}
-
-### 第二步：用户输入意图判断
-请精准分析用户当前输入【{user_input}】的核心意图，分为以下四类：
-1. 歌曲相关意图：提及歌曲（新增/追加备注）
-2. AI信息修改意图：要求修改你的称呼/年龄/性格
-3. 播放歌曲意图：要求播放指定歌曲（如“播放特别的你”“来一首特别的人”）
-4. 无修改意图：纯聊天（如打招呼、吐槽、确认信息等）
-
-### 第三步：可调用的后端方法说明
-| 方法名                | 作用说明                                  | 必传参数                          |
-|-----------------------|-------------------------------------------|-----------------------------------|
-| update_ai_info        | 修改AI的基础信息（称呼/年龄/性格）| call_name/age/personality（可选） |
-| append_song_remarks   | 为已存在的歌曲追加备注                    | song_name, singer, new_remarks    |
-| update_song_record    | 新增用户提及的歌曲记录（无则新增）| song_name, singer, remarks        |
-| play_song             | 播放指定歌曲                              | song_name（用户输入的歌曲名）     |
-
-### 第四步：回复生成规则
-1. 严格遵循你的性格【{ai_personality}】生成多段回复（1-4句）：
-2. 播放歌曲意图：回复必须简洁（每句不超过20字，总长度不超过20字），轻快活泼
-3. 有方法调用时：回复需明确体现操作结果，分多句说明
-4. 无方法调用时：仅需符合性格，自然分多句回应用户
-5. 所有回复禁止使用\n换行符，用～作为分句分隔符
-
-### 第五步：输出格式要求（必须严格返回JSON字符串，无任何额外内容）
-{{
-  "methods": [  // 需调用的方法数组，无则为空数组[]
-    {{
-      "method": "方法名（如play_song）",
-      "params": {{
-        "song_name": "用户输入的歌曲名"
-      }}
-    }}
-  ],
-  "replies": [  // 2-4句语义关联的回复，每句独立成段（播放意图时每句≤10字）
-    "符合性格的第一段回复",
-    "符合性格的第二段回复",
-    "符合性格的第三段回复"
-  ],
-  "main_reply": "所有回复用～拼接后的完整话术（播放意图时总长度≤20字，禁止使用\\n）"
-}}
-
-### 补充说明
-- methods数组中：参数值必须与用户输入严格一致，不能为空
-- replies数组：播放意图时数量2-3句，每句≤10字；其他场景2-4句
-- main_reply：播放意图时必须≤20字，其他场景≤50字
-- 名字纠错/确认场景（用户叫错你名字但未要求修改）：methods为空数组，仅回复纠正
 """
 
-    system_prompt = system_prompt.replace("{context}", context)
-    system_prompt = system_prompt.replace("{call_name}", ai_call_name)
-    system_prompt = system_prompt.replace("{user_name}", user_name)
-    system_prompt = system_prompt.replace("{ai_personality}", ai_personality)
-    system_prompt = system_prompt.replace("{user_input}", user_input)
+    history_messages = []
+    for chat in chat_history:
+        history_messages.append({"role": "user", "content": chat["user_input"]})
+        history_messages.append({"role": "assistant", "content": chat["ai_reply"]})
+
+    payload = {
+        "model": "qwen3-max",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            *history_messages,
+            {"role": "user", "content": user_input}
+        ],
+        "temperature": 0.3,
+        "stream": False,
+        "response_format": {"type": "json_object"}
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {QWEN_API_KEY}"
+    }
+
+    try:
+        response = requests.post(QWEN_API_URL, json=payload, headers=headers, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+        qwen_reply = result["choices"][0]["message"]["content"]
+        logger.info(f"Qwen第一次判断（含方法提取）结果：{qwen_reply}")
+        
+        qwen_reply = re.sub(r"```json|\n```", "", qwen_reply).strip()
+        judge_result = json.loads(qwen_reply)
+        return {
+            "success": True,
+            "data": judge_result
+        }
+    except Exception as e:
+        logger.error(f"Qwen第一次判断失败：{str(e)}")
+        return {
+            "success": False,
+            "msg": str(e),
+            "data": {"need_search": False, "methods": [], "reason": "判断失败"}
+        }
+
+def call_qwen_final_reply(user_input: str, search_result: str = ""):
+    """
+    第二次调用Qwen：生成最终回复
+    - search_result为空：功能类/聊天类回复
+    - search_result不为空：基于搜索结果的知识类回复
+    """
+    full_data = data_operate.read_data()
+    clean_context = {
+        "user": {
+            "basic_info": full_data["user"]["basic_info"],
+            "song_records": full_data["user"]["song_records"][-50:]
+        },
+        "ai": full_data["ai"]
+    }
+    context_json = json.dumps(clean_context, ensure_ascii=False)
+    chat_history = full_data["user"]["chat_history"][-MAX_CHAT_HISTORY:]
+    ai_info = full_data["ai"]["basic_info"]
+    user_info = full_data["user"]["basic_info"]
+    
+    ai_call_name = ai_info.get("call_name", "小南")
+    user_name = user_info.get("name", "小君")
+    ai_personality = ai_info.get("personality", "活泼开朗")
+
+    if search_result:
+        # 知识类回复：基于搜索结果
+        system_prompt = f"""
+### 角色与上下文
+你是名为【{ai_call_name}】的歌曲AI助手，性格【{ai_personality}】，用户是【{user_name}】。
+用户记忆库：{context_json}
+外部搜索结果（必须基于此回答）：{search_result}
+
+### 回复要求
+1.  结合搜索结果和用户记忆库，生成**简洁、活泼**的回复
+2.  回复分2-3句，用～分隔，禁止换行
+3.  总长度不超过50字，符合歌曲助手的语气
+4.  **必须返回严格的JSON格式**：
+    {{
+        "replies": ["回复句1", "回复句2"],
+        "main_reply": "拼接后的完整回复"
+    }}
+        """
+    else:
+        # 功能类回复：原逻辑
+        system_prompt = f"""
+### 角色与上下文
+你是名为【{ai_call_name}】的歌曲AI助手，性格【{ai_personality}】，用户是【{user_name}】。
+用户记忆库：{context_json}
+
+### 回复要求
+1.  生成符合性格的回复，分2-3句，用～分隔
+2.  播放歌曲回复≤20字，其他回复≤50字
+3.  **必须返回严格的JSON格式**：
+    {{
+        "replies": ["回复句1", "回复句2"],
+        "main_reply": "拼接后的完整回复"
+    }}
+        """
 
     history_messages = []
-    for chat in chat_history[-MAX_CHAT_HISTORY:]:
+    for chat in chat_history:
         history_messages.append({"role": "user", "content": chat["user_input"]})
         history_messages.append({"role": "assistant", "content": chat["ai_reply"]})
 
@@ -487,143 +651,97 @@ def call_qwen_api(user_input: str):
         "Authorization": f"Bearer {QWEN_API_KEY}"
     }
 
-    logger.info(f"===== 调用Qwen API开始 =====")
-    logger.info(f"请求Payload：{json.dumps(payload, ensure_ascii=False, indent=2)}")
-    
     try:
         response = requests.post(QWEN_API_URL, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
         result = response.json()
         qwen_reply = result["choices"][0]["message"]["content"]
+        logger.info(f"Qwen最终回复结果：{qwen_reply}")
         
-        logger.info(f"Qwen API返回：{qwen_reply}")
-        logger.info(f"===== 调用Qwen API结束 =====")
-        
-        return qwen_reply
-    except Exception as e:
-        error_msg = f"调用Qwen失败：{str(e)}"
-        logger.error(error_msg)
-        return error_msg
-
-def parse_qwen_reply(qwen_raw: str):
-    """解析Qwen回复（优化播放指令的回复长度）"""
-    logger.info(f"开始解析Qwen回复，原始内容：{qwen_raw}")
-    
-    if qwen_raw.startswith("调用Qwen失败"):
-        logger.info("Qwen调用失败，返回兜底回复")
+        qwen_reply = re.sub(r"```json|\n```", "", qwen_reply).strip()
+        reply_result = json.loads(qwen_reply)
         return {
-            "main_reply": "抱歉，我暂时无法响应你的请求～",
-            "replies": ["抱歉～", "我暂时无法响应你的请求呢～", "可以稍后再试试哦！"],
-            "play_song": ""
+            "success": True,
+            "data": reply_result
         }
-    
-    default_replies = ["没理解你的意思呢～", "可以再说清楚一点吗？😜"]
-    final_result = {
-        "main_reply": "没理解你的意思呢～",
-        "replies": default_replies,
-        "play_song": ""
-    }
-    
-    try:
-        qwen_raw = re.sub(r"[^\{\}\:\,\[\]\"\'\w\s\/\.\-\，；：\\]", "", qwen_raw)
-        qwen_raw = re.sub(r"```json|\n```", "", qwen_raw).strip()
-        logger.info(f"清理后的Qwen回复：{qwen_raw}")
-        
-        reply_json = json.loads(qwen_raw)
-        logger.info(f"解析后的JSON：{json.dumps(reply_json, ensure_ascii=False, indent=2)}")
-
-        methods = reply_json.get("methods", [])
-        ai_info_updated = False
-        updated_personality = ""
-        play_song = ""
-        
-        # 执行方法调用
-        for item in methods:
-            method = item.get("method")
-            params = item.get("params", {})
-            logger.info(f"执行方法：{method}，参数：{params}")
-            
-            if method == "update_ai_info":
-                res = data_operate.update_basic_info("ai", params)
-                logger.info(f"update_ai_info执行结果：{res}")
-                if res["status"] == "success" and "personality" in res["updated_fields"]:
-                    ai_info_updated = True
-                    updated_personality = res["updated_fields"]["personality"]
-            elif method == "append_song_remarks":
-                res = data_operate.append_song_remarks(
-                    params.get("song_name"),
-                    params.get("singer"),
-                    params.get("new_remarks", "")
-                )
-                logger.info(f"append_song_remarks执行结果：{res}")
-            elif method == "update_song_record":
-                res = data_operate.update_song_record(
-                    params.get("song_name"),
-                    params.get("singer"),
-                    params.get("remarks", "")
-                )
-                logger.info(f"update_song_record执行结果：{res}")
-            elif method == "play_song":
-                play_song = params.get("song_name", "")
-                final_result["play_song"] = play_song
-
-        # 处理多段回复并清理异常字符
-        replies = reply_json.get("replies", default_replies)
-        replies = [clean_text(reply) for reply in replies if reply.strip()]
-        
-        # 优化播放指令的回复长度
-        if play_song:
-            logger.info(f"检测到播放指令，优化回复长度：{play_song}")
-            # 播放指令时：限制回复数量2-3句，每句≤10字
-            if len(replies) < 2:
-                replies = replies + [f"《{play_song}》这就播放～"][:2-len(replies)]
-            elif len(replies) > 3:
-                replies = replies[:3]
-            # 每句限制10字以内
-            replies = [reply[:8] + "～" if len(reply) > 10 else reply for reply in replies]
-            # 主回复限制20字以内
-            main_reply = reply_json.get("main_reply", "～".join(replies))
-            main_reply = shorten_play_reply(clean_text(main_reply), play_song)
-        else:
-            # 非播放指令：保持原有逻辑
-            if len(replies) < 2:
-                replies = replies + default_replies[:2-len(replies)]
-            elif len(replies) > 4:
-                replies = replies[:4]
-            main_reply = reply_json.get("main_reply", "～".join(replies))
-            main_reply = clean_text(main_reply)
-        
-        # 性格更新后的回复调整
-        if ai_info_updated:
-            if "高冷" in updated_personality:
-                replies = ["已修改性格。", "有话直说。", "无需多言。"]
-                main_reply = "已修改性格，有话直说。"
-            elif "开朗活泼" in updated_personality:
-                replies = ["好呀好呀～", "我已经改好性格啦！", "超喜欢聊天～"]
-                main_reply = "好呀～我已经改好性格啦！超喜欢聊天～"
-        
-        final_result = {
-            "main_reply": main_reply,
-            "replies": replies,
-            "play_song": play_song
-        }
-        logger.info(f"解析完成，最终回复：{final_result}")
-
     except Exception as e:
-        error_msg = f"解析Qwen回复失败：{str(e)}"
-        logger.error(error_msg)
-        final_result = {
-            "main_reply": "哎呀，我有点没看懂呢～",
-            "replies": ["哎呀～", "我有点没看懂呢～", "可以换个说法吗？😜"],
-            "play_song": ""
+        logger.error(f"Qwen最终回复失败：{str(e)}")
+        return {
+            "success": False,
+            "msg": str(e),
+            "data": {
+                "replies": ["抱歉～", "我有点没看懂呢～"],
+                "main_reply": "抱歉～我有点没看懂呢～"
+            }
         }
+
+def execute_methods(methods: list):
+    """执行Qwen提取的方法调用"""
+    play_song = ""
+    ai_info_updated = False
+    updated_personality = ""
+    # 记录用户信息更新状态和更新的名字
+    user_info_updated = False
+    updated_username = ""
     
-    return final_result
+    for item in methods:
+        method = item.get("method")
+        params = item.get("params", {})
+        logger.info(f"执行方法：{method}，参数：{params}")
+        
+        if method == "update_ai_info":
+            res = data_operate.update_basic_info("ai", params)
+            if res["status"] == "success" and "personality" in res["updated_fields"]:
+                ai_info_updated = True
+                updated_personality = res["updated_fields"]["personality"]
+        # ========== 执行用户信息更新 ==========
+        elif method == "update_user_info":
+            res = data_operate.update_user_info(params)
+            logger.info(f"更新用户信息结果：{res}")
+            if res["status"] == "success" and "name" in res["updated_fields"]:
+                user_info_updated = True
+                updated_username = res["updated_fields"]["name"]
+        elif method == "append_song_remarks":
+            data_operate.append_song_remarks(
+                params.get("song_name"),
+                params.get("singer"),
+                params.get("new_remarks", "")
+            )
+        elif method == "update_song_record":
+            data_operate.update_song_record(
+                params.get("song_name"),
+                params.get("singer"),
+                params.get("remarks", "")
+            )
+        elif method == "play_song":
+            play_song = params.get("song_name", "")
+    
+    # 用户改名后的专属回复
+    if user_info_updated:
+        return {
+            "play_song": play_song,
+            "replies": [f"好哒～", f"已经把你的名字改成{updated_username}啦～"],
+            "main_reply": f"好哒～已经把你的名字改成{updated_username}啦～"
+        }
+    # 保留原有AI性格更新逻辑
+    if ai_info_updated:
+        if "高冷" in updated_personality:
+            return {
+                "play_song": play_song,
+                "replies": ["已修改性格。", "有话直说。"],
+                "main_reply": "已修改性格，有话直说。"
+            }
+        elif "开朗活泼" in updated_personality:
+            return {
+                "play_song": play_song,
+                "replies": ["好呀好呀～", "我已经改好性格啦！"],
+                "main_reply": "好呀～我已经改好性格啦！"
+            }
+    return {"play_song": play_song}
 
 # ========== 歌曲相关接口 ==========
 @app.get("/api/music/match/{input_name}")
 async def match_song(input_name: str):
-    """模糊匹配歌曲名（优化返回格式）"""
     audio_files = list(MUSIC_DIR.glob("*.aac")) + list(MUSIC_DIR.glob("*.mp3"))
     if not audio_files:
         raise HTTPException(status_code=404, detail="暂无歌曲文件")
@@ -635,7 +753,6 @@ async def match_song(input_name: str):
         song_name = file.stem.replace("_歌曲", "").replace("_", " ")
         song_clean = re.sub(r"的|你|我|他|啊|哦", "", song_name)
         if set(input_clean) & set(song_clean):
-            # 移除audio_path返回（前端不再需要），只返回歌曲名
             matched_song = {
                 "name": song_name,
                 "has_lyric": (MUSIC_DIR / f"{song_name}_歌词.lrc").exists()
@@ -653,27 +770,18 @@ async def match_song(input_name: str):
 
 @app.get("/api/music/play/{song_name}")
 async def play_music(song_name: str):
-    """返回歌曲音频流（修复中文文件名编码问题）"""
     try:
-        # 模糊匹配音频文件
         audio_files = list(MUSIC_DIR.glob(f"*{song_name}*.aac")) + list(MUSIC_DIR.glob(f"*{song_name}*.mp3"))
         if not audio_files:
             raise HTTPException(status_code=404, detail="音频文件不存在")
         
         audio_path = audio_files[0]
-        if not audio_path.exists():
-            raise HTTPException(status_code=404, detail="音频文件不存在")
-        
-        # 读取文件字节流（避开FileResponse的中文编码问题）
         with open(audio_path, "rb") as f:
             audio_data = f.read()
         
-        # 根据文件后缀设置正确的Content-Type
         suffix = audio_path.suffix.lower()
         media_type = "audio/aac" if suffix == ".aac" else "audio/mpeg"
         
-        # 使用Response直接返回字节流，手动处理中文文件名的Content-Disposition
-        # 对文件名进行URL编码，避免中文乱码
         import urllib.parse
         encoded_filename = urllib.parse.quote(audio_path.name)
         
@@ -691,7 +799,6 @@ async def play_music(song_name: str):
 
 @app.get("/api/music/lyric/{song_name}")
 async def get_lyric(song_name: str):
-    """解析LRC歌词"""
     lyric_files = list(MUSIC_DIR.glob(f"*{song_name}*.lrc"))
     if not lyric_files:
         raise HTTPException(status_code=404, detail="歌词文件不存在")
@@ -726,7 +833,6 @@ async def get_lyric(song_name: str):
 # ========== 核心接口 ==========
 @app.post("/api/asr")
 async def asr(audio_file: UploadFile = File(...)):
-    """语音识别接口"""
     try:
         audio_bytes = await audio_file.read()
         logger.info(f"接收音频文件：{audio_file.filename}，大小：{len(audio_bytes)}字节")
@@ -741,33 +847,74 @@ async def asr(audio_file: UploadFile = File(...)):
         
         user_input = asr_result["text"].strip()
         if not user_input:
-            logger.error("ASR识别结果为空！")
             return {
                 "code": 400,
                 "data": None,
                 "msg": "未识别到有效语音，请重新录制"
             }
         
-        logger.info(f"ASR识别结果：{user_input}，开始处理聊天逻辑")
+        # 第一步：Qwen判断是否需要搜索 + 提取方法
+        judge_res = call_qwen_first_judge(user_input)
+        if not judge_res["success"]:
+            return {
+                "code": 500,
+                "data": None,
+                "msg": judge_res["msg"]
+            }
+        judge_data = judge_res["data"]
+        need_search = judge_data["need_search"]
+        methods = judge_data["methods"]
+        logger.info(f"Qwen判断：{'需要搜索' if need_search else '无需搜索'}，理由：{judge_data['reason']}")
+
+        play_song = ""
+        replies = []
+        main_reply = ""
+
+        if need_search:
+            # 第二步：调用百度搜索
+            search_res = call_baidu_ai_search(user_input)
+            if search_res["status"] == "success" and search_res["ai_answer"]:
+                # 第三步：Qwen生成最终知识类回复
+                final_res = call_qwen_final_reply(user_input, search_res["ai_answer"])
+                if final_res["success"]:
+                    replies = final_res["data"]["replies"]
+                    main_reply = final_res["data"]["main_reply"]
+                else:
+                    replies = ["抱歉～", "暂时没找到相关信息呢～"]
+                    main_reply = "抱歉～暂时没找到相关信息呢～"
+            else:
+                replies = ["搜索失败～", "请稍后再试哦～"]
+                main_reply = "搜索失败～请稍后再试哦～"
+        else:
+            # 无需搜索：执行方法 + 生成功能类回复
+            method_res = execute_methods(methods)
+            play_song = method_res.get("play_song", "")
+            # 优先使用方法执行后的回复
+            if "replies" in method_res:
+                replies = method_res["replies"]
+                main_reply = method_res["main_reply"]
+            else:
+                # 调用Qwen生成功能类回复
+                final_res = call_qwen_final_reply(user_input)
+                replies = final_res["data"]["replies"]
+                main_reply = final_res["data"]["main_reply"]
         
-        qwen_raw = call_qwen_api(user_input)
-        parse_result = parse_qwen_reply(qwen_raw)
-        ai_reply = parse_result["main_reply"]
-        ai_replies = parse_result["replies"]
-        play_song = parse_result["play_song"]
+        # 清理回复内容
+        main_reply = clean_text(main_reply)
+        replies = [clean_text(reply) for reply in replies if reply.strip()]
+        # 优化播放回复
+        if play_song:
+            main_reply = shorten_play_reply(main_reply, play_song)
         
-        ai_reply = clean_text(ai_reply)
-        ai_replies = [clean_text(reply) for reply in ai_replies]
-        
-        data_operate.add_chat_history(user_input, ai_reply)
+        data_operate.add_chat_history(user_input, main_reply)
         
         return {
             "code": 200,
             "data": {
                 "asr_text": user_input,
-                "ai_reply": ai_reply,
-                "ai_replies": ai_replies,
-                "tts_text": ai_reply,
+                "ai_reply": main_reply,
+                "ai_replies": replies,
+                "tts_text": main_reply,
                 "play_song": play_song
             },
             "msg": "success"
@@ -779,7 +926,6 @@ async def asr(audio_file: UploadFile = File(...)):
 
 @app.get("/api/tts")
 async def tts(text: str):
-    """语音合成接口"""
     if not text:
         raise HTTPException(status_code=400, detail="请提供合成文本")
     
@@ -800,8 +946,9 @@ class ChatRequest(BaseModel):
     user_input: str
 
 @app.post("/api/chat")
+@app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """聊天接口"""
+    """核心聊天接口：Qwen自主判断是否搜索"""
     try:
         user_input = request.user_input.strip()
         logger.info(f"===== 处理聊天请求开始 =====")
@@ -814,65 +961,76 @@ async def chat(request: ChatRequest):
                 "msg": "请输入聊天内容"
             }
         
-        qwen_raw = call_qwen_api(user_input)
-        parse_result = parse_qwen_reply(qwen_raw)
-        ai_reply = parse_result["main_reply"]
-        ai_replies = parse_result["replies"]
-        play_song = parse_result["play_song"]
-        
-        # 兜底逻辑
-        ai_info = extract_ai_info_from_input(user_input)
-        if ai_info and "update_ai_info" not in qwen_raw:
-            logger.info("Qwen未触发update_ai_info，执行兜底逻辑")
-            res = data_operate.update_basic_info("ai", ai_info)
-            if res["status"] == "success":
-                if "开朗活泼" in ai_info.get("personality", ""):
-                    ai_replies = ["好呀～", "我已经改好性格啦！", "超喜欢唱歌～"]
-                    ai_reply = "好呀～我已经改好性格啦！超喜欢唱歌～"
-                elif "高冷" in ai_info.get("personality", ""):
-                    ai_replies = ["已修改。", "有话直说。", "无需多言。"]
-                    ai_reply = "已修改，有话直说。"
+        # ========== 第一步：Qwen第一次调用：判断是否需要搜索 + 提取方法 ==========
+        judge_res = call_qwen_first_judge(user_input)
+        if not judge_res["success"]:
+            return {
+                "code": 500,
+                "data": None,
+                "msg": judge_res["msg"]
+            }
+        judge_data = judge_res["data"]
+        need_search = judge_data["need_search"]
+        methods = judge_data["methods"]
+        logger.info(f"Qwen判断结果：{'需要搜索' if need_search else '无需搜索'}")
+        logger.info(f"判断理由：{judge_data['reason']}")
+
+        play_song = ""
+        replies = []
+        main_reply = ""
+
+        if need_search:
+            # ========== 第二步：需要搜索 → 调用百度AI搜索 ==========
+            search_res = call_baidu_ai_search(user_input)
+            # 打印搜索结果状态
+            logger.info(f"\n🔍 百度搜索调用状态：{search_res['status']}")
+            if search_res["status"] == "success" and search_res["ai_answer"]:
+                logger.info(f"百度搜索结果：{search_res['ai_answer']}")
+                # ========== 第三步：Qwen第二次调用：基于搜索结果生成回复 ==========
+                final_res = call_qwen_final_reply(user_input, search_res["ai_answer"])
+                if final_res["success"]:
+                    replies = final_res["data"]["replies"]
+                    main_reply = final_res["data"]["main_reply"]
                 else:
-                    field_name = list(ai_info.keys())[0]
-                    field_value = list(ai_info.values())[0]
-                    ai_replies = [
-                        f"已按要求修改啦～",
-                        f"我的{field_name}是{field_value}哦！",
-                        f"超符合期待😜"
-                    ]
-                    ai_reply = f"已按要求修改啦～我的{field_name}是{field_value}哦！"
+                    replies = ["抱歉～", "我有点懵啦～"]
+                    main_reply = "抱歉～我有点懵啦～"
+            else:
+                logger.error(f"百度搜索失败：{search_res.get('msg', '未知错误')}")
+                replies = ["搜索失败啦～", "换个问题试试吧～"]
+                main_reply = "搜索失败啦～换个问题试试吧～"
+        else:
+            # ========== 无需搜索 → 执行方法 + 生成功能类回复 ==========
+            method_res = execute_methods(methods)
+            play_song = method_res.get("play_song", "")
+            # 性格更新的特殊回复
+            if "replies" in method_res:
+                replies = method_res["replies"]
+                main_reply = method_res["main_reply"]
+            else:
+                # Qwen生成常规功能回复
+                final_res = call_qwen_final_reply(user_input)
+                replies = final_res["data"]["replies"]
+                main_reply = final_res["data"]["main_reply"]
         
-        song_info = extract_song_info_from_input(user_input)
-        if song_info and "append_song_remarks" not in qwen_raw:
-            logger.info("Qwen未触发append_song_remarks，执行兜底逻辑")
-            data_operate.append_song_remarks(
-                song_info["song_name"],
-                song_info["singer"],
-                song_info["new_remarks"]
-            )
-            ai_replies = [
-                f"已追加《{song_info['song_name']}》备注～",
-                f"备注：{song_info['new_remarks']}",
-                f"都记下来咯📝"
-            ]
-            ai_reply = f"已追加《{song_info['song_name']}》备注：{song_info['new_remarks']}～"
+        # 最终清理和优化
+        main_reply = clean_text(main_reply)
+        replies = [clean_text(reply) for reply in replies if reply.strip()]
+        if play_song:
+            main_reply = shorten_play_reply(main_reply, play_song)
         
-        # 最终清理回复内容
-        ai_reply = clean_text(ai_reply)
-        ai_replies = [clean_text(reply) for reply in ai_replies]
+        data_operate.add_chat_history(user_input, main_reply)
         
-        data_operate.add_chat_history(user_input, ai_reply)
-        
-        logger.info(f"聊天请求处理完成，最终回复：{ai_reply}，多段回复：{ai_replies}，播放歌曲：{play_song}")
+        logger.info(f"最终回复：{main_reply} | 播放歌曲：{play_song}")
         logger.info(f"===== 处理聊天请求结束 =====\n")
         
         return {
             "code": 200,
             "data": {
-                "reply": ai_reply,
-                "replies": ai_replies,
-                "tts_text": ai_reply,
-                "play_song": play_song
+                "reply": main_reply,
+                "replies": replies,
+                "tts_text": main_reply,
+                "play_song": play_song,
+                "search_result": search_res if need_search else None  # 新增：返回搜索结果到前端
             },
             "msg": "success"
         }
@@ -883,7 +1041,6 @@ async def chat(request: ChatRequest):
 
 @app.get("/api/health")
 async def health():
-    """健康检查"""
     logger.info("健康检查接口被调用")
     return {
         "code": 200,
@@ -893,12 +1050,10 @@ async def health():
 
 # ========== 辅助函数 ==========
 def extract_song_info_from_input(user_input: str):
-    """提取歌曲信息"""
     logger.info(f"开始提取歌曲信息，用户输入：{user_input}")
     data = data_operate.read_data()
     song_records = data["user"]["song_records"]
     if not song_records:
-        logger.info("无歌曲记录，提取结果：None")
         return None
     
     input_clean = re.sub(r"我喜欢听|这首歌|之前唱的时候|有时候|会|的|唱|听", "", user_input).strip()
@@ -909,18 +1064,14 @@ def extract_song_info_from_input(user_input: str):
         if song_name in user_input or song_name in input_clean:
             remarks_match = re.search(rf"{song_name}(.*?)(？|。|！|$)", user_input)
             new_remarks = remarks_match.group(1).strip() if remarks_match else "用户再次提及该歌曲"
-            result = {
+            return {
                 "song_name": song_name,
                 "singer": singer,
                 "new_remarks": new_remarks
             }
-            logger.info(f"歌曲信息提取成功：{result}")
-            return result
-    logger.info("未匹配到歌曲，提取结果：None")
     return None
 
 def extract_ai_info_from_input(user_input: str):
-    """提取AI信息修改指令"""
     logger.info(f"开始提取AI信息修改指令，用户输入：{user_input}")
     ai_info = {}
     personality_patterns = [
@@ -946,10 +1097,13 @@ def extract_ai_info_from_input(user_input: str):
     if call_name_match:
         ai_info["call_name"] = call_name_match.group(1) if call_name_match.group(1) else call_name_match.group(2)
     
-    logger.info(f"AI信息提取结果：{ai_info if ai_info else 'None'}")
     return ai_info if ai_info else None
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(content=b"", media_type="image/x-icon")
 
 # ========== 启动服务 ==========
 if __name__ == "__main__":
-    logger.info("启动KTV AI助手后端服务...")
+    logger.info("启动AI助手后端服务...")
     uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)

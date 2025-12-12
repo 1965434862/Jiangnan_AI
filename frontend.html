@@ -62,7 +62,7 @@
             letter-spacing: 1px;
             opacity: 0.8;
         }
-        /* 重新布局：视频面板 + 聊天面板 + 音乐面板 */
+        /* 视频面板 + 聊天面板 + 音乐面板 */
         .main-layout {
             display: flex;
             gap: 20px;
@@ -107,7 +107,7 @@
             gap: 15px;
             min-width: 400px;
         }
-        /* 右侧音乐面板优化 - 改为flex布局，歌词占满剩余空间 */
+        /* flex布局，歌词占满剩余空间 */
         .music-panel {
             flex: 1;
             background: rgba(247, 250, 252, 0.8);
@@ -115,12 +115,18 @@
             padding: 25px;
             border: 1px solid rgba(66, 153, 225, 0.1);
             box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            /* 关键修改：改为垂直布局，标签栏在上，内容在下 */
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            /* 移除居中，避免内容被挤到中间 */
+            align-items: stretch;
+            justify-content: flex-start;
             min-height: 700px;
-            height: 100%; /* 确保高度铺满 */
+            height: 100%;
+            /* 保留相对定位，防止内容溢出 */
+            position: relative;
+            /* 内容超出时滚动 */
+            overflow-y: auto;
         }
         /* 播放面板占位符 */
         .music-placeholder {
@@ -158,8 +164,8 @@
             background: rgba(255, 255, 255, 0.9);
             border: 1px solid rgba(66, 153, 225, 0.1);
             padding: 0;
-            min-height: 320px; /* 进一步增加高度 */
-            height: 320px; /* 固定高度确保完全显示 */
+            min-height: 320px; 
+            height: 320px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -170,10 +176,10 @@
             width: 100%;
             transform: translateY(0);
         }
-        /* 优化歌词行样式 - 三行显示专用 */
+        /* 三行显示专用 */
         .lyric-line {
-            height: 90px; /* 进一步增加高度 */
-            line-height: 90px; /* 进一步增加行高 */
+            height: 90px;
+            line-height: 90px; 
             text-align: center;
             font-size: 20px;
             color: #6e7c7c;
@@ -188,7 +194,7 @@
 
         .lyric-line.prev {
             opacity: 0.5;
-            transform: translateY(-90px); /* 与高度匹配 */
+            transform: translateY(-90px); 
         }
         .lyric-line.active {
             opacity: 1;
@@ -196,13 +202,13 @@
             font-size: 24px;
             font-weight: 600;
             text-shadow: 0 0 8px rgba(66, 153, 225, 0.2);
-            height: 90px; /* 与高度匹配 */
-            line-height: 90px; /* 与行高匹配 */
+            height: 90px; 
+            line-height: 90px; 
             transform: translateY(0);
         }
         .lyric-line.next {
             opacity: 0.5;
-            transform: translateY(90px); /* 与高度匹配 */
+            transform: translateY(90px);
         }
         .song-title {
             color: #2d3748;
@@ -276,7 +282,7 @@
             opacity: 0.7;
             letter-spacing: 0.5px;
         }
-        /* 输入区域布局调整 */
+        /* 输入区域布局 */
         .input-wrapper {
             display: flex;
             flex-direction: column;
@@ -314,7 +320,7 @@
             color: #a0aec0;
             opacity: 0.7;
         }
-        /* 大尺寸语音按钮：磨砂质感+浅色渐变 */
+        /* 大尺寸语音按钮 */
         .voice-btn {
             height: 80px;
             width: 80px;
@@ -337,7 +343,7 @@
             z-index: 10;
         }
         .voice-btn::after {
-            content: "点击录音/结束";
+            content: "";
             position: absolute;
             bottom: -30px;
             left: 50%;
@@ -391,7 +397,7 @@
             50% { transform: scale(1.3); opacity: 0.8; }
             100% { transform: scale(0.9); opacity: 0.5; }
         }
-        /* 发送按钮：磨砂+浅色渐变 */
+        /* 发送按钮 */
         .send-btn {
             height: 70px;
             width: 70px;
@@ -504,16 +510,132 @@
             color: #3182ce;
             transform: scale(1.1);
         }
+        .search-result-panel {
+            width: 100%;
+            /* 固定高度（匹配面板整体高度，减去标签栏高度） */
+            height: calc(100% - 80px); 
+            max-height: 620px; /* 兜底最大高度，防止溢出 */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 20px;
+            padding: 10px 0;
+            /* 开启垂直滚动，水平不滚动 */
+            overflow-y: auto;
+            overflow-x: hidden;
+            /* 优化滚动条样式 */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(66, 153, 225, 0.3) rgba(247, 250, 252, 0.5);
+        }
+        .search-result-title {
+            color: #2d3748;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            width: 100%;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(66, 153, 225, 0.1);
+        }
+        .search-answer {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            border: 1px solid rgba(66, 153, 225, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            line-height: 1.8;
+            color: #2d3748;
+            font-size: 16px;
+        }
+        .search-references-title {
+            color: #4a5568;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .reference-item {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            width: 100%;
+            border-left: 3px solid #4299e1;
+        }
+        .reference-title {
+            color: #4299e1;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        .reference-content {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .reference-url {
+            color: #38b2ac;
+            font-size: 12px;
+            margin-top: 8px;
+            word-break: break-all;
+        }
+        /* 切换标签样式 */
+        .panel-tabs {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            background: rgba(247, 250, 252, 0.95);
+            padding: 10px 0;
+            margin-bottom: 15px;
+            z-index: 100;
+            border-bottom: 1px solid rgba(66, 153, 225, 0.1);
+        }
+        .tab-btn {
+            flex: 1;
+            height: 45px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(247, 250, 252, 0.8);
+            color: #718096;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4299e1, #38b2ac);
+            color: white;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.2);
+        }
+        .music-placeholder, .music-player-container, .search-result-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .reference-url a {
+            color: #38b2ac;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .reference-url a:hover {
+            color: #4299e1;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="permission-tip" id="permission-tip">正在请求麦克风权限，请允许...</div>
     <div class="container">
         <div class="header">
-            <h1>江南</h1>
-            <p>🎵 今天听什么歌曲呢？</p>
+            <h1>小南</h1>
+            <p>🎵 我是您专属的音乐搭子。</p>
         </div>
-        <!-- 重新布局：视频面板 + 聊天面板 + 音乐面板 -->
         <div class="main-layout">
             <!-- 左侧虚拟角色视频面板 -->
             <div class="avatar-panel">
@@ -529,6 +651,7 @@
             
             <!-- 中间聊天面板 -->
             <div class="chat-panel">
+                <!-- 原有聊天面板内容不变 -->
                 <div class="chat-box" id="chat-box">
                     <div class="message ai-message">
                         <div class="message-content">
@@ -543,36 +666,48 @@
                     <span></span>
                     <span class="loading-text">智能助手正在响应...</span>
                 </div>
-                
-                <!-- 输入区域 -->
                 <div class="input-wrapper">
                     <div class="voice-btn-container">
-                        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
+                        <button class="voice-btn" id="voice-btn">
                             <div class="recording-indicator" id="recording-indicator" style="display: none;"></div>
                             🎙️
                         </button>
                     </div>
                     <div class="input-area">
                         <textarea id="user-input" placeholder="输入您想聊的内容..."></textarea>
-                        <button class="send-btn" onclick="sendMessage()">➤</button>
+                        <button class="send-btn" id="send-btn">➤</button>
                     </div>
                 </div>
             </div>
             
-            <!-- 右侧歌曲播放面板 -->
+            <!-- 右侧面板 -->
             <div class="music-panel" id="music-panel">
-                <div class="music-placeholder">
-                    🎶 暂无播放歌曲<br/>
-                    说“播放一首特别的你”试试～
+                <div class="panel-tabs">
+                    <button class="tab-btn active" id="music-tab" onclick="switchPanel('music')">🎵 歌曲播放</button>
+                    <button class="tab-btn" id="search-tab" onclick="switchPanel('search')">🔍 智能搜索</button>
                 </div>
-                <!-- 歌曲播放容器（初始隐藏） -->
+                <div class="music-placeholder" id="music-placeholder">
+                    🎶 暂无播放歌曲<br/>
+                    说“播放一首特别的人”试试～
+                </div>
                 <div class="music-player-container" id="music-player-container" style="display: none;">
                     <h3 class="song-title" id="song-title"></h3>
-                    <!-- 音频播放器 -->
                     <audio id="audio-player" controls class="audio-player"></audio>
-                    <!-- 歌词展示区域 -->
                     <div class="lyric-container" id="lyric-container">
                         <div class="lyric-scroll" id="lyric-scroll"></div>
+                    </div>
+                </div>
+                <div class="search-result-panel" id="search-result-panel" style="display: none;">
+                    <div class="search-result-title" id="search-result-title">智能搜索结果</div>
+                    <div class="search-answer" id="search-answer">
+                        暂无搜索结果，输入歌曲相关问题试试～
+                    </div>
+                    <div class="search-references-title">参考来源</div>
+                    <div id="search-references">
+                        <div class="reference-item">
+                            <div class="reference-title">等待搜索...</div>
+                            <div class="reference-content">请输入问题触发智能搜索</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -601,15 +736,22 @@
         // 虚拟角色视频相关变量
         let normalVideo = null;
         let talkingVideo = null;
-        let ttsAudio = null; // 当前播放的TTS音频
-        let isTalking = false; // 是否正在说话
+        let ttsAudio = null;
+        let isTalking = false;
 
-        window.addEventListener('DOMContentLoaded', async () => {
+        let currentPanel = 'music'; 
+        let lastSearchResult = null;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', async () => {
             const permissionTip = document.getElementById('permission-tip');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const voiceBtn = document.getElementById('voice-btn');
+            
             permissionTip.style.display = 'block';
             
             try {
-                // 初始化AudioContext
                 audioContext = new (window.AudioContext || window.webkitAudioContext)({
                     sampleRate: 16000
                 });
@@ -638,19 +780,119 @@
                 }, 5000);
             }
 
-            // 初始化虚拟角色视频
             initAvatarVideos();
-            
-            // 初始化歌曲播放器
             initMusicPlayer();
+
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            sendBtn.addEventListener('click', sendMessage);
+            voiceBtn.addEventListener('click', toggleRecording);
         });
 
+        function switchPanel(panelType) {
+            currentPanel = panelType;
+            const musicTab = document.getElementById('music-tab');
+            const searchTab = document.getElementById('search-tab');
+            const musicPlaceholder = document.getElementById('music-placeholder');
+            const musicPlayerContainer = document.getElementById('music-player-container');
+            const searchResultPanel = document.getElementById('search-result-panel');
+
+            // 切换标签激活状态
+            if (panelType === 'music') {
+                musicTab.classList.add('active');
+                searchTab.classList.remove('active');
+                searchResultPanel.style.display = 'none';
+                if (audioPlayer.src) {
+                    musicPlayerContainer.style.display = 'flex';
+                    musicPlaceholder.style.display = 'none';
+                } else {
+                    musicPlaceholder.style.display = 'block';
+                    musicPlayerContainer.style.display = 'none';
+                }
+            } else if (panelType === 'search') {
+                musicTab.classList.remove('active');
+                searchTab.classList.add('active');
+                musicPlaceholder.style.display = 'none';
+                musicPlayerContainer.style.display = 'none';
+                searchResultPanel.style.display = 'flex';
+                if (lastSearchResult) {
+                    renderSearchResult(lastSearchResult);
+                } else {
+                    document.getElementById('search-answer').textContent = '暂无搜索结果，输入歌曲相关问题试试～';
+                    document.getElementById('search-references').innerHTML = `
+                        <div class="reference-item">
+                            <div class="reference-title">等待搜索...</div>
+                            <div class="reference-content">请输入问题触发智能搜索</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        // ========== 搜索结果渲染函数 ==========
+        function renderSearchResult(searchResult) {
+            const searchAnswer = document.getElementById('search-answer');
+            const searchReferences = document.getElementById('search-references');
+            const searchResultTitle = document.getElementById('search-result-title');
+
+            searchResultTitle.textContent = '智能搜索结果';
+            
+            let cleanAnswer = searchResult.ai_answer || '暂无有效搜索结果';
+            cleanAnswer = cleanAnswer.replace(/\*\*/g, '') 
+                                    .replace(/\n+/g, ' ')
+                                    .replace(/\^\[\d+\]\^/g, '')
+                                    .trim();
+            
+            searchAnswer.textContent = cleanAnswer;
+
+            searchReferences.innerHTML = '';
+            if (searchResult.references && searchResult.references.length > 0) {
+                searchResult.references.forEach((ref, index) => {
+                    if (!ref.content || ref.content === 'None') return;
+                    
+                    const refItem = document.createElement('div');
+                    refItem.className = 'reference-item';
+                    const cleanContent = ref.content.replace(/\n+/g, ' ').substring(0, 100);
+                    // ========== URL转为超链接 ==========
+                    const refUrl = ref.url || '无链接';
+                    let urlHtml = refUrl === '无链接' 
+                        ? refUrl 
+                        : `<a href="${refUrl}" target="_blank" style="color: #38b2ac; text-decoration: none;">${refUrl}</a>`;
+                    
+                    refItem.innerHTML = `
+                        <div class="reference-title">${index + 1}. ${ref.title || '无标题'}</div>
+                        <div class="reference-content">${cleanContent || '无内容'}</div>
+                        <div class="reference-url">${urlHtml}</div>
+                    `;
+                    searchReferences.appendChild(refItem);
+                });
+                
+                if (searchReferences.children.length === 0) {
+                    const noRefItem = document.createElement('div');
+                    noRefItem.className = 'reference-item';
+                    noRefItem.innerHTML = `
+                        <div class="reference-title">暂无有效参考来源</div>
+                        <div class="reference-content">未获取到相关参考信息</div>
+                    `;
+                    searchReferences.appendChild(noRefItem);
+                }
+            } else {
+                const noRefItem = document.createElement('div');
+                noRefItem.className = 'reference-item';
+                noRefItem.innerHTML = `
+                    <div class="reference-title">暂无参考来源</div>
+                    <div class="reference-content">未获取到相关参考信息</div>
+                `;
+                searchReferences.appendChild(noRefItem);
+            }
+        }
         // ========== 虚拟角色视频相关函数 ==========
         function initAvatarVideos() {
             normalVideo = document.getElementById('normal-video');
             talkingVideo = document.getElementById('talking-video');
-            
-            // 监听视频加载完成事件
             normalVideo.onloadeddata = function() {
                 this.play();
             };
@@ -680,7 +922,6 @@
             talkingVideo.currentTime = 0; // 重置视频到开头
             talkingVideo.play().catch(err => {
                 console.warn("视频播放触发失败（浏览器策略）:", err);
-                // 降级方案：即使play失败，也强制显示视频
                 talkingVideo.style.display = 'block';
             });
         }
@@ -706,7 +947,6 @@
                 clearMusicPanel();
             };
             
-            // 优化歌词更新频率：每200ms更新一次，减少计算量
             let lyricUpdateTimer = null;
             audioPlayer.onplay = () => {
                 // 启动定时更新
@@ -775,7 +1015,7 @@
 
         async function loadAndPlaySong(songName) {
             try {
-                // 第一步：模糊匹配歌曲名
+                //模糊匹配歌曲名
                 const matchRes = await fetch(`http://127.0.0.1:8000/api/music/match/${encodeURIComponent(songName)}`);
                 const matchData = await matchRes.json();
                 
@@ -787,22 +1027,22 @@
                 const songInfo = matchData.data;
                 const realSongName = songInfo.name;
                 
-                // 第二步：更新播放面板
+                //更新播放面板
                 const musicPanel = document.getElementById('music-panel');
                 const playerContainer = document.getElementById('music-player-container');
                 const placeholder = document.querySelector('.music-placeholder');
                 const songTitle = document.getElementById('song-title');
                 
-                // 显示播放器，隐藏占位符
+                //隐藏占位符
                 placeholder.style.display = "none";
                 playerContainer.style.display = "flex";
                 songTitle.textContent = realSongName;
                 
-                // 第三步：加载音频
+                //加载音频
                 const audioUrl = `http://127.0.0.1:8000/api/music/play/${encodeURIComponent(realSongName)}`;
                 audioPlayer.src = audioUrl;
                 
-                // 第四步：加载并解析歌词
+                //加载并解析歌词
                 if (songInfo.has_lyric) {
                     const lyricRes = await fetch(`http://127.0.0.1:8000/api/music/lyric/${encodeURIComponent(realSongName)}`);
                     const lyricData = await lyricRes.json();
@@ -848,12 +1088,10 @@
             }
         }
 
-        // 重新实现歌词渲染 - 只渲染三行
         function renderLyrics() {
             lyricScrollEl.innerHTML = "";
             lastActiveIndex = -1;
             
-            // 先渲染所有歌词行（默认隐藏）
             currentLyrics.forEach((lyric, index) => {
                 const lyricLine = document.createElement('div');
                 lyricLine.className = "lyric-line";
@@ -863,29 +1101,24 @@
                 lyricScrollEl.appendChild(lyricLine);
             });
             
-            // 初始显示第一行歌词
             if (currentLyrics.length > 0) {
                 updateLyricHighlight(0);
             }
         }
 
-        // 核心修复：歌词同步逻辑 - 只显示三行
+        // 歌词同步逻辑 - 只显示三行
         function syncLyrics() {
             if (!currentLyrics.length || !lyricScrollEl || !lyricContainerEl) return;
             
             const activeIndex = getCurrentLyricIndex();
             
-            // 只有当歌词索引变化时才更新，避免重复计算
             if (activeIndex === -1 || activeIndex === lastActiveIndex) return;
             
-            // 更新高亮和显示状态
             updateLyricHighlight(activeIndex);
             lastActiveIndex = activeIndex;
         }
 
-        // 更新歌词高亮和显示状态 - 只显示当前行和上下行
         function updateLyricHighlight(activeIndex) {
-            // 隐藏所有歌词行
             document.querySelectorAll('.lyric-line').forEach(el => {
                 el.classList.remove('active', 'prev', 'next');
                 el.style.opacity = 0;
@@ -1025,21 +1258,27 @@
                     const asrText = result.data.asr_text;
                     const aiReply = result.data.ai_reply;
                     const playSong = result.data.play_song;
+                    const searchResult = result.data.search_result || {}; 
                     
-                    // 添加用户语音转文字消息
                     addMessageToChat('user', asrText);
-                    
-                    // 添加AI回复
                     addMessageToChat('ai', aiReply);
                     
-                    // 自动播放TTS并切换视频状态
                     if (result.data.tts_text) {
                         await playTTS(result.data.tts_text);
                     }
 
-                    // 如果需要播放歌曲
                     if (playSong) {
                         await loadAndPlaySong(playSong);
+                        switchPanel('music');
+                    }
+
+                    if (searchResult && searchResult.status === 'success' && searchResult.ai_answer) {
+                        lastSearchResult = {
+                            ai_answer: searchResult.ai_answer,
+                            references: searchResult.references || []
+                        };
+                        switchPanel('search');
+                        renderSearchResult(lastSearchResult); // 强制渲染
                     }
                     
                 } else {
@@ -1056,12 +1295,20 @@
 
         // ========== 聊天相关函数 ==========
         async function sendMessage() {
-            const userInput = document.getElementById('user-input').trim();
-            if (!userInput) return;
+            const userInputEl = document.getElementById('user-input');
+            if (!userInputEl) {
+                console.error("用户输入框未找到");
+                return;
+            }
+            
+            const userInput = userInputEl.value.trim();
+            if (!userInput) {
+                console.log("空输入，忽略发送请求");
+                return;
+            }
 
-            // 添加用户消息
             addMessageToChat('user', userInput);
-            document.getElementById('user-input').value = '';
+            userInputEl.value = '';
 
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
@@ -1076,24 +1323,37 @@
                     mode: 'cors'
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP错误！状态码：${response.status}`);
+                }
+
                 const result = await response.json();
                 loading.style.display = 'none';
 
                 if (result.code === 200) {
                     const aiReply = result.data.reply;
                     const playSong = result.data.play_song;
+                    const searchResult = result.data.search_result || {};
                     
-                    // 添加AI回复
                     addMessageToChat('ai', aiReply);
                     
-                    // 自动播放TTS并切换视频状态
                     if (result.data.tts_text) {
                         await playTTS(result.data.tts_text);
                     }
 
-                    // 如果需要播放歌曲
+                    // 处理歌曲播放
                     if (playSong) {
                         await loadAndPlaySong(playSong);
+                        switchPanel('music');
+                    }
+
+                    if (searchResult && searchResult.status === 'success' && searchResult.ai_answer) {
+                        lastSearchResult = {
+                            ai_answer: searchResult.ai_answer,
+                            references: searchResult.references || []
+                        };
+                        switchPanel('search');
+                        renderSearchResult(lastSearchResult); // 强制渲染
                     }
                     
                 } else {
@@ -1102,12 +1362,17 @@
             } catch (err) {
                 loading.style.display = 'none';
                 console.error("❌ 聊天请求失败:", err);
-                addMessageToChat('ai', `抱歉，请求失败了😥`);
+                addMessageToChat('ai', `抱歉，请求失败了😥 错误信息：${err.message}`);
             }
         }
 
         function addMessageToChat(role, content) {
             const chatBox = document.getElementById('chat-box');
+            if (!chatBox) {
+                console.error("聊天框未找到");
+                return;
+            }
+            
             const now = new Date();
             const timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
             
@@ -1129,6 +1394,7 @@
             messageDiv.appendChild(timeDiv);
             chatBox.appendChild(messageDiv);
             
+            // 滚动到最底部
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -1167,14 +1433,6 @@
                 alert(`语音播放失败: ${err.message}`);
             }
         }
-
-        // 回车发送消息
-        document.getElementById('user-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
     </script>
 </body>
 </html>
