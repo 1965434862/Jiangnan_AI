@@ -28,6 +28,20 @@
 ### 歌曲播放功能  
 <img src="music.png" width="800" alt="歌曲播放功能">  
 
+### AI记忆结构  
+<img src="AI记忆.png" width="800" alt="歌曲播放功能">  
+
+### AI决策逻辑1  
+<img src="决策逻辑qwen.png" width="800" alt="歌曲播放功能">  
+
+### AI决策逻辑2  
+<img src="决策逻辑qwen+百度千帆1.png" width="800" alt="歌曲播放功能">  
+<img src="决策逻辑qwen+百度千帆2.png" width="800" alt="歌曲播放功能">  
+
+### AI决策逻辑2  
+一句提问可执行多个方法，聊天记忆，词语接龙，对于未知知识，调用百度千帆智能搜索做一个简单的知识增强。可分析并进行用户的语义理解，具体演示视频如下：  
+【小南AI】 https://www.bilibili.com/video/BV1EvmmBDEQC/?share_source=copy_web&vd_source=ace1240da2eff55045f9c97fb083b053  
+
 
 小南 AI 助手是一款面向多场景的智能交互系统，集成阿里云 ASR/TTS 语音能力、通义千问（Qwen3-max）大模型、虚拟形象交互和歌曲播放功能，实现了语音 / 文字双模态交互、百度智能检索相关知识库，智能歌曲点播、歌词实时同步、虚拟形象动作联动等核心特性，为用户提供沉浸式的智能陪伴体验。  
 
