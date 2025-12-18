@@ -1107,3 +1107,6 @@ async def favicon():
 if __name__ == "__main__":
     logger.info("启动AI助手后端服务...")
     uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
+
+
+# git测试！
