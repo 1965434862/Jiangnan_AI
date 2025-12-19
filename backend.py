@@ -16,6 +16,8 @@ import uvicorn
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkcore.request import CommonRequest
 
+# test day2
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 import aliyunsdkcore.client as acs_client
@@ -35,9 +37,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("xiaonan-AI")
 
-#=============================================================
-#=================各种key与url，暂时隐藏========================
-#=============================================================
+# 阿里云配置
+
 
 # 歌曲配置
 MUSIC_DIR = Path(os.path.dirname(__file__)) / "music"
@@ -447,7 +448,7 @@ def shorten_play_reply(reply: str, song_name: str) -> str:
     if len(reply) > 20:
         return play_templates[0]
     else:
-        reply = re.sub(r'非常|特别|真的|超级|真的超', '', reply)
+        reply = re.sub(r'非常|真的|超级|真的超', '', reply)
         reply = re.sub(r'～+', '～', reply)
         if len(reply) > 20:
             reply = reply[:18] + "～"
@@ -492,7 +493,7 @@ def call_qwen_first_judge(user_input: str):
   1. 正常聊天、修改AI信息、**修改用户信息**、播放歌曲、管理歌曲记录等**功能类操作**
   2. 本地记忆库已有相关信息的歌曲问题（如用户提及已记录的歌曲）
   3. 包含"播放/放/听"等关键词的歌曲播放指令（无论本地是否有该歌曲）
-  4. 你觉得等，询问主观建议问题。
+  4. 你觉得，你认为等，询问主观建议问题。
 
 #### 任务2：提取后端方法调用
 请精准分析用户当前输入【{user_input}】的意图，提取需要执行的后端方法，按以下规则：
@@ -1107,6 +1108,3 @@ async def favicon():
 if __name__ == "__main__":
     logger.info("启动AI助手后端服务...")
     uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
-
-
-# git测试！
