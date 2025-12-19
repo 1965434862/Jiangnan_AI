@@ -18,6 +18,9 @@ from aliyunsdkcore.request import CommonRequest
 
 # test day2
 
+# test git push test
+
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 import aliyunsdkcore.client as acs_client
